@@ -160,7 +160,7 @@ test('browser back inside pass-around stays; 홈으로 leaves', async ({ page })
   await page.goBack();
   await page.waitForTimeout(300);
   await expect(page).toHaveURL(/#\/pass$/);
-  await expect(page.getByLabel('기기 한 대 돌려쓰기')).toBeVisible();
+  await expect(page.getByRole('region', { name: '돌려쓰기 설정' })).toBeVisible();
   await page.getByRole('button', { name: '홈으로' }).click();
   await expect(page.getByRole('heading', { name: '여럿이 각자 기기로' })).toBeVisible();
 });

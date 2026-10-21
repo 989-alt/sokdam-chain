@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// e2e must never hit the public 0.peerjs.com: build against the local peer server.
+// e2e must never hit the public signaling server (공용 시그널링 서버): build against the local peer server.
 const signalingEnv = {
   VITE_SIGNALING_HOST: '127.0.0.1',
   VITE_SIGNALING_PORT: '9000',
