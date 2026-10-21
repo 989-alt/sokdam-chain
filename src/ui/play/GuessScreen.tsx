@@ -1,6 +1,6 @@
 // 화면 6 답 쓰기(+ 제출 뒤 같은 쪽이 기다리기로). 시간 제한 없음. 온라인·돌려쓰기 공용 — props·콜백만.
 import type { ComponentChildren } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Input } from '../../engine';
 import { Icon } from '../shared/Icon';
 import { Topbar } from '../shared/Topbar';
@@ -28,6 +28,12 @@ export function GuessScreen(p: GuessScreenProps) {
   const [confirming, setConfirming] = useState(false);
   const [sent, setSent] = useState(false);
   const done = sent || p.submitted;
+  // 방장이 답을 못 받음(재합류 sync 가 submitted true→false) — 쓴 답 그대로 다시 낼 수 있게(답엔 기한이 없어 안 풀면 판이 멈춘다)
+  const was = useRef(p.submitted);
+  useEffect(() => {
+    if (was.current && !p.submitted) setSent(false);
+    was.current = p.submitted;
+  }, [p.submitted]);
 
   const submit = (e: Event) => {
     e.preventDefault();

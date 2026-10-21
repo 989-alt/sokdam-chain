@@ -1,7 +1,7 @@
 /* 화면 16 전용. 2px 표 경계·480px 버튼 폭은 시안 그대로의 값(대응 토큰 없음). 공통 부품(.screen·.form·fieldset·.opt·.btn·.field·.help)은 시안 3-cartoon-book 의 전역 스타일을 쓴다. 토큰 변수만. */
 .screen-teacher .opt.is-checked { background: var(--color-tool-selected-surface); color: var(--color-tool-selected-foreground); }
 .screen-teacher textarea { width: 100%; padding: var(--spacing-3) var(--spacing-4); font: inherit; font-size: var(--font-size-body); line-height: var(--font-lineHeight-body); background: var(--color-card); color: var(--color-card-foreground); border: var(--border-width-default) solid var(--color-input); border-radius: var(--radius-md); resize: vertical; }
-.screen-teacher textarea::placeholder { color: var(--color-canvas-placeholder); }
+.screen-teacher textarea::placeholder { color: var(--color-muted-foreground); }
 .screen-teacher .opt:focus-within { outline: var(--border-width-strong) solid var(--color-ring); outline-offset: 3px; }
 .screen-teacher textarea:focus-visible { outline: var(--border-width-strong) solid var(--color-ring); outline-offset: 3px; }
 .screen-teacher .teacher-link { font-size: var(--font-size-caption); word-break: break-all; background: var(--color-muted); color: var(--color-muted-foreground); }

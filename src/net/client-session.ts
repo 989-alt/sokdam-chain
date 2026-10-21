@@ -338,11 +338,10 @@ export class ClientSession {
 
   private applySync(s: SyncState): void {
     const { slot, settings, players, submitted, waiting, pages, page, candidates, voted, result, phase } = s;
-    // 같은 칸이면 옛 cell 객체를 그대로 둔다 — 화면이 다시 마운트되지 않아 그리던 그림이 남는다.
-    // 단 보낸 제출을 방장이 못 받았으면(submitted true→false) 다시 마운트해 화면이 다시 제출할 수 있게 한다.
+    // 같은 칸이면 옛 cell 객체를 그대로 둔다 — 화면이 다시 마운트되지 않아 그리던 그림·쓰던 답이 남는다.
+    // 보낸 제출을 방장이 못 받았으면(submitted true→false) 화면이 그 변화를 보고 보내기 잠금을 풀어 같은 그림·답을 다시 낸다.
     const cur = this.view.cell;
-    const lostSubmit = this.view.submitted && !submitted;
-    const same = !lostSubmit && !!cur && !!s.cell && cur.chainIdx === s.cell.chainIdx && cur.step === s.cell.step && cur.deadlineAt === s.cell.deadlineAt;
+    const same = !!cur && !!s.cell && cur.chainIdx === s.cell.chainIdx && cur.step === s.cell.step && cur.deadlineAt === s.cell.deadlineAt;
     const cell = same ? cur : s.cell;
     this.set({ phase, slot, settings, players, cell, submitted, waiting, pages, page, candidates, voted, result, submitError: null });
     const q = this.queued;

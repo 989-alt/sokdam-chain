@@ -313,7 +313,7 @@ describe('끊김 감지', () => {
     host.leave();
   });
 
-  it('끊김을 알기 전 죽은 채널로 보낸 답은 재합류 sync 뒤 칸이 다시 마운트돼 다시 낼 수 있고 판이 이어진다', async () => {
+  it('끊김을 알기 전 죽은 채널로 보낸 답은 재합류 sync 뒤 같은 칸 그대로(다시 마운트 없음) submitted=false 라 다시 낼 수 있고 판이 이어진다', async () => {
     const { net, host, all } = await room(4);
     host.start();
     await flush();
@@ -330,8 +330,7 @@ describe('끊김 감지', () => {
     await flush(20);
     expect(c.view.reconnecting).toBe(false);
     expect(c.view.submitted).toBe(false);
-    expect(c.view.cell).not.toBe(cell); // 새 객체 → 화면 다시 마운트(sent·busy 초기화)
-    expect(c.view.cell).toEqual(cell);
+    expect(c.view.cell).toBe(cell); // 같은 객체 → 화면이 남아 쓴 답·그림이 그대로(화면이 submitted true→false 로 잠금을 푼다)
     await submitAll(all);
     expect(host.view.step).toBe(2);
     host.leave();

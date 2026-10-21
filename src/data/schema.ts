@@ -27,7 +27,9 @@ export function validateWords(json: unknown): Word[] {
     const o = x as Record<string, unknown>;
     const keys = Object.keys(o);
     if (keys.length !== FIELDS.length || !FIELDS.every((f) => keys.includes(f))) throw new Error(`${at}: 필드는 ${FIELDS.join('·')} 여섯 개여야 함`);
-    for (const f of FIELDS) if (typeof o[f] !== 'string' || !(o[f] as string).trim()) throw new Error(`${at}: ${f} 비어 있음`);
+    // 교사 목록 항목(toWords 가 id 't-<순번>')은 예문을 비워도 된다(PRD §7.6) — 본 목록은 필수
+    const optional = (f: string) => f === 'example' && typeof o.id === 'string' && o.id.startsWith('t-');
+    for (const f of FIELDS) if (typeof o[f] !== 'string' || (!(o[f] as string).trim() && !optional(f))) throw new Error(`${at}: ${f} 비어 있음`);
     if (!(LEVELS as readonly unknown[]).includes(o.level)) throw new Error(`${at}: level 잘못됨 ${String(o.level)}`);
     if (!(TYPES as readonly unknown[]).includes(o.type)) throw new Error(`${at}: type 잘못됨 ${String(o.type)}`);
     if ((o.meaning as string).length > 60) throw new Error(`${at}: meaning 60자 초과`);

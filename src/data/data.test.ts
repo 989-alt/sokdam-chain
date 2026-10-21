@@ -20,6 +20,9 @@ describe('validateWords', () => {
     expect(() => validateWords([ok, { ...ok, id: 'x2' }])).toThrow(/text 중복/);
     expect(() => validateWords([{ ...ok, example: '가'.repeat(81) }])).toThrow(/80/);
     expect(() => validateWords({})).toThrow();
+    expect(() => validateWords([{ ...ok, example: '' }])).toThrow(/example/); // 본 목록은 예문 필수
+    expect(validateWords([{ ...ok, id: 't-1', example: '' }])).toHaveLength(1); // 교사 항목은 비워도 됨
+    expect(() => validateWords([{ ...ok, id: 't-1', example: '가'.repeat(81) }])).toThrow(/80/);
   });
 });
 

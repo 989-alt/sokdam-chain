@@ -82,6 +82,18 @@ export function DrawScreen(p: DrawScreenProps) {
     }
   });
 
+  // 방장이 제출을 못 받음(재합류 sync 가 submitted true→false) — 같은 그림으로 다시 보낼 수 있게 잠금을 푼다.
+  // 기한이 지났으면 아래 자동 제출이 이 그림을 다시 보낸다(새 빈 캔버스가 아님). 거부(error)는 다음 효과가 횟수를 센다.
+  const was = useRef(p.submitted);
+  useEffect(() => {
+    if (was.current && !p.submitted && !p.error) {
+      r.current.busy = false;
+      r.current.auto = false;
+      setBusy(false);
+    }
+    was.current = p.submitted;
+  }, [p.submitted]);
+
   useEffect(() => {
     if (!p.error || p.submitted) return;
     r.current.busy = false;
