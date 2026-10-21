@@ -25,7 +25,10 @@ import { Topbar } from '../shared/Topbar';
 import './passaround.css';
 
 const COVERS = [cover1, cover2, cover3, cover4, cover5, cover6];
-const START_FAIL = '제시어가 모자라 시작할 수 없어요. 수준을 바꾸거나 선생님 목록을 확인해 주세요';
+const startFail = (teacherOnly: boolean) =>
+  teacherOnly ? '선생님 목록의 제시어가 모자라 시작할 수 없어요. 스케치북을 1권으로 줄이거나 목록을 늘려 주세요' : '제시어가 모자라 시작할 수 없어요. 수준을 바꾸거나 선생님 목록을 확인해 주세요';
+/** 앞사람이 "보냈어요"를 두 번 누른 손가락이 다음 사람 내용을 열지 않게, 가림 화면 버튼은 잠깐 잠근다. */
+const READY_DELAY_MS = 400;
 
 function Opt({ on, onClick, children }: { on: boolean; onClick: () => void; children: ComponentChildren }) {
   return (
@@ -52,7 +55,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
         onBack={onExit}
         onStart={(names, s) => {
           const r = start(names, s, teacher, Math.random);
-          if ('ok' in r) return START_FAIL;
+          if ('ok' in r) return startFail(teacher?.mode === 'only');
           images.current.clear();
           setPass(r);
           return null;
@@ -75,6 +78,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
     const owner = ph.kind === 'cover' ? c!.chain.startSlot : slot;
     return (
       <Cover
+        key={ph.kind === 'cover' ? `c${pass.game.step}` : `v${ph.voter}`}
         name={nameOf(slot)}
         what={ph.kind === 'vote-cover' ? '스티커를 붙일 차례' : c!.entry.kind === 'draw' ? '그림 그릴 차례' : '답 쓸 차례'}
         cover={COVERS[owner % 6]!}
@@ -182,7 +186,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
       image={image}
       onAgain={() => {
         const r = again(pass, Math.random);
-        if ('ok' in r) return START_FAIL;
+        if ('ok' in r) return startFail(teacher?.mode === 'only');
         images.current.clear();
         setPass(r);
         return null;
@@ -195,6 +199,13 @@ export function PassAround({ onExit }: { onExit: () => void }) {
 
 /** 화면 14 가림: 앞 내용 없이 덮은 책 + 쉿 부엉이 + 이름. */
 function Cover({ name, what, cover, onReady, onQuit }: { name: string; what: string; cover: string; onReady: () => void; onQuit: () => void }) {
+  const [armed, setArmed] = useState(false);
+  const ready = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    ready.current?.focus(); // 화면이 바뀌었음을 스크린리더·키보드에 알린다
+    const t = setTimeout(() => setArmed(true), READY_DELAY_MS);
+    return () => clearTimeout(t);
+  }, []);
   return (
     <section class="screen pass-cover" aria-label="가림 화면">
       <Topbar title="기기 한 대 돌려쓰기" />
@@ -205,7 +216,8 @@ function Cover({ name, what, cover, onReady, onQuit }: { name: string; what: str
         </div>
         <h1 class="h">{name} 차례예요. 준비되면 누르세요</h1>
         <p>{what}이에요. 다른 친구는 화면을 보지 말아요</p>
-        <button type="button" class="btn primary press" onClick={onReady}>
+        {/* disabled 대신 aria-disabled — disabled 버튼은 포커스를 받지 못한다 */}
+        <button ref={ready} type="button" class="btn primary press" aria-disabled={!armed} onClick={() => armed && onReady()}>
           <Icon name="play" size="lg" />
           준비됐어요
         </button>
