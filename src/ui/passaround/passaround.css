@@ -1,0 +1,9 @@
+/* 돌려쓰기(13~15). 공용 토큰·부품만 — 가림 화면은 덮은 책(UI-02) 위에 쉿 부엉이(KA-03 shh 542×570). */
+.pass-cover .end { flex: 1; align-content: center; }
+.pass-art { position: relative; height: 240px; aspect-ratio: 338 / 480; }
+.end .pass-art img { position: absolute; width: auto; object-fit: contain; }
+.end .pass-art .pass-book { inset: 0; height: 100%; aspect-ratio: 338 / 480; }
+.end .pass-art .pass-shh { right: -60%; bottom: 0; height: 150px; aspect-ratio: 542 / 570; }
+.pass-names { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-3); }
+.pass-names li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--spacing-3); }
+.pass-no { min-width: var(--size-touch-min); height: var(--size-touch-primary); display: grid; place-items: center; font-size: var(--font-size-heading); }
