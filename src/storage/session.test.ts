@@ -116,6 +116,15 @@ describe('세션 키 수명 — 학생만 저장, ended·leave 에 삭제', () =
     expect(mem.has(KEY)).toBe(false);
   });
 
+  it('방장 망 끊김(등록은 남고 P2P 두 번 안 열림) → host-left 지만 추정이라 키는 남는다', async () => {
+    const { net, host, client } = await setup();
+    net.freeze(`sokdam-${host.code}`);
+    clearInterval((host as any).ping);
+    await vi.advanceTimersByTimeAsync(28000);
+    expect(client.view.ended).toBe('host-left');
+    expect(mem.has(KEY)).toBe(true);
+  });
+
   it('와이파이가 꺼진 채 이어하기를 눌러도(network) 키는 남는다', async () => {
     const { host } = await setup();
     const down = { open: () => Promise.reject(new Error('timeout')) };

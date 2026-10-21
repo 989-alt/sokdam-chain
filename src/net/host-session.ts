@@ -82,6 +82,8 @@ export type HostView = {
   pageCount: number;
   voted: number;
   result: VoteResult | null;
+  /** 시그널링 재등록을 포기함(내 방 id 를 다른 peer 가 가져감). 진행 중 판은 계속되지만 새 입장·끊긴 학생의 다시 붙기는 못 받는다. */
+  signalingLost: boolean;
 };
 
 export type HostOptions = {
@@ -126,6 +128,7 @@ export class HostSession {
     (id) => this.dropIncoming(id, 'bad-image'),
   );
   private onUnload = () => this.leave();
+  private signalingLost = false;
   private subs = new Set<(v: HostView) => void>();
   private now: () => number;
   private rng: Rng;
@@ -138,6 +141,10 @@ export class HostSession {
     this.now = o.now ?? Date.now;
     this.rng = o.rng ?? Math.random;
     ep.onConnection((c) => this.accept(c));
+    ep.onSignalingLost?.(() => {
+      this.signalingLost = true;
+      this.emit();
+    });
     this.ping = setInterval(() => this.tick(), PING_MS);
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', this.onUnload);
@@ -165,6 +172,7 @@ export class HostSession {
       pageCount: this.pages.length,
       voted: Object.keys(this.votes).length,
       result: this.result,
+      signalingLost: this.signalingLost,
     };
   }
 

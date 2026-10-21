@@ -39,9 +39,12 @@ export type ClientView = {
   candidates: CandidateKeys | null;
   voted: boolean;
   result: VoteResult | null;
-  /** host-left = 방장이 나감(끊긴 뒤 다시 붙어 보니 방이 없음 포함). lost = 내 망 문제로 다시 못 붙음(세션 키를 남겨 이어하기 가능). left = 내가 나감. */
+  /**
+   * host-left = 방장이 나감(ended 수신·다시 붙어 보니 방이 없음 → 키 삭제. 방장에게 P2P 가 두 번 안 열림 → 키 유지, 이어하기가 no-room 을 받으면 그때 삭제).
+   * lost = 내 망 문제로 다시 못 붙음(키 유지, 이어하기 가능). left = 내가 나감.
+   */
   ended: EndReason | 'lost' | 'left' | null;
-  /** 끊겨서 스스로 다시 붙는 중. 보통 1초 안, 최악은 방장 망 끊김 약 6초·내 망 끊김 약 21초(보고서 수정 3차). 화면은 그대로 두고 "다시 연결하는 중" 정도만. */
+  /** 끊겨서 스스로 다시 붙는 중. 보통 1초 안, 최악은 방장 망 끊김 약 15~20초·내 망 끊김 약 21초(보고서 수정 4차). 화면은 그대로 두고 "다시 연결하는 중" 정도만. */
   reconnecting: boolean;
 };
 
@@ -58,22 +61,24 @@ type Opts = {
   redial?: { network: Network; hostId: string };
 };
 
-// 끊긴 뒤 다시 붙기: 최대 3번, 내 망 실패 사이 3초. 연결 시도는 6초까지만 기다린다.
+// 끊긴 뒤 다시 붙기: 최대 3번, 내 망 실패 사이 3초. 연결 시도는 전송 기본값(15초)까지 기다린다 — 느린 ICE(STUN 만·혼합 기기)를 방장 없음으로 오판하지 않게.
 // 시그널링은 되는데 방장에게 P2P 가 안 열리는 것(unreachable)이 침묵 뒤 두 번이면 방장이 떠난 것(망 끊김·잠듦 —
 // PeerServer 는 죽은 방장을 60초 동안 등록된 채로 두어 peer-unavailable 이 오지 않는다). 직전까지 P2P 로 붙어 있었으니 내 쪽 P2P 탓일 가능성은 낮다.
+// 그래도 확정은 아니라 세션 키는 남긴다 — 이어하기가 no-room 을 받으면 그때 지운다.
 // 방장 peer 가 없다는 답(peer-unavailable) 한 번이면 방장이 떠난 것: PeerServer 는 없는 peer 앞 offer 를
 // expire_timeout(5초) 동안 쥐고 있다가 EXPIRE 로 답하므로, 그 답 자체가 "5초 넘게 등록이 없었다"는 뜻이다.
 export const REDIAL_TRIES = 3;
 export const REDIAL_GAP_MS = 3000;
 /** ping 이 이만큼 끊기면 연결은 그대로 둔 채 시그널링에 방장 peer 가 아직 있는지 물어본다(말없이 사라진 방장을 10초보다 빨리 알기). */
 export const PROBE_AFTER_MS = 2000;
-export const REDIAL_CONNECT_MS = 6000;
+/** 확인(probe)만 짧게 기다린다 — 답이 없어도 10초 규칙의 다시 붙기가 뒤따른다. */
+export const PROBE_CONNECT_MS = 6000;
 export const UNREACHABLE_LIMIT = 2;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
- * 방장에게 새 연결. 'no-room' = 시그널링이 방장 peer 없음이라고 답함, 'net' = 내 시그널링이 안 열림(내 망 문제),
- * 'unreachable' = 시그널링은 되는데 방장에게 P2P 가 안 열림(timeout·실패).
+ * 방장에게 새 연결. 'no-room' = 시그널링이 방장 peer 없음이라고 답함, 'net' = 내 시그널링이 안 열림·연결 중 끊김(내 망 문제 —
+ * PeerJS 의 network·socket-error·socket-closed·server-error·disconnected), 'unreachable' = 시그널링은 되는데 방장에게 P2P 가 안 열림(timeout·ICE 실패).
  */
 async function dial(network: Network, hostId: string, timeoutMs?: number): Promise<{ ep: Endpoint; conn: Conn } | 'no-room' | 'net' | 'unreachable'> {
   let ep: Endpoint;
@@ -86,7 +91,8 @@ async function dial(network: Network, hostId: string, timeoutMs?: number): Promi
     return { ep, conn: await ep.connect(hostId, timeoutMs) };
   } catch (e) {
     ep.destroy();
-    return (e as Error).message === 'peer-unavailable' ? 'no-room' : 'unreachable';
+    const why = (e as Error).message;
+    return why === 'peer-unavailable' ? 'no-room' : why === 'timeout' || why === 'connect-failed' ? 'unreachable' : 'net';
   }
 }
 
@@ -347,10 +353,11 @@ export class ClientSession {
     for (; this.tries < REDIAL_TRIES; this.tries++) {
       if (wait) await sleep(REDIAL_GAP_MS);
       if (this.disposed) return;
-      const d = await dial(r.network, r.hostId, REDIAL_CONNECT_MS);
+      const d = await dial(r.network, r.hostId);
       if (this.disposed) return void (typeof d === 'object' && d.ep.destroy());
-      if (d === 'no-room' || (d === 'unreachable' && ++this.unreachable >= UNREACHABLE_LIMIT)) return this.finish('host-left');
-      wait = d === 'net'; // unreachable 은 이미 6초 기다렸다
+      if (d === 'no-room') return this.finish('host-left');
+      if (d === 'unreachable' && ++this.unreachable >= UNREACHABLE_LIMIT) return this.finish('host-left', false);
+      wait = d === 'net'; // unreachable 은 이미 15초 기다렸다
       if (typeof d !== 'object') continue;
       this.tries++;
       this.o.onDispose = () => d.ep.destroy();
@@ -367,7 +374,7 @@ export class ClientSession {
   /** 방장 peer 가 시그널링에 없다고 답하면 방장이 떠난 것. 있거나 내 망 문제면 아무것도 안 한다(10초 규칙에 맡김). */
   private async probe(r: { network: Network; hostId: string }): Promise<void> {
     const heard = (this.probedFor = this.lastHeard);
-    const d = await dial(r.network, r.hostId, REDIAL_CONNECT_MS);
+    const d = await dial(r.network, r.hostId, PROBE_CONNECT_MS);
     if (typeof d === 'object') {
       d.conn.close();
       d.ep.destroy();
@@ -377,10 +384,10 @@ export class ClientSession {
     else if (d === 'unreachable') this.unreachable++; // 다시 붙기에서 한 번 더 그러면 host-left
   }
 
-  /** 끝. host-left 면 세션 키도 지운다(PRD §8 방장 끊김). */
-  private finish(ended: 'lost' | 'host-left'): void {
+  /** 끝. host-left 면 세션 키도 지운다(PRD §8 방장 끊김) — 단 unreachable 추정이면(clearKey=false) 남긴다. */
+  private finish(ended: 'lost' | 'host-left', clearKey = true): void {
     if (this.disposed) return;
-    if (ended === 'host-left' && this.o.persist) clearSession();
+    if (ended === 'host-left' && clearKey && this.o.persist) clearSession();
     this.redialing = false;
     this.settle({ ok: false, reason: ended === 'lost' ? 'lost' : 'no-room' });
     this.set({ phase: 'ended', ended, reconnecting: false });

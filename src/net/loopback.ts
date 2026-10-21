@@ -89,7 +89,7 @@ export function createLoopback(opts: Opts = {}): Loopback {
           new Promise((resolve, reject) =>
             setTimeout(() => {
               const remote = eps.get(peerId);
-              if (remote && frozen.has(peerId)) return void (timeoutMs !== undefined && setTimeout(() => reject(new Error('timeout')), timeoutMs));
+              if (remote && frozen.has(peerId)) return void setTimeout(() => reject(new Error('timeout')), timeoutMs ?? 15000); // peer-transport 기본과 같게
               if (!remote || eps.get(id) !== me) return void setTimeout(() => reject(new Error('peer-unavailable')), opts.unavailableMs ?? 0);
               const a = new LoopConn(peerId, id, net);
               const b = new LoopConn(id, peerId, net);

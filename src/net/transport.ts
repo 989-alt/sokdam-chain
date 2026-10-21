@@ -16,6 +16,8 @@ export interface Endpoint {
   /** 열리면 resolve. 상대 없음·실패면 Error(message = 'peer-unavailable' | 'timeout' | 'connect-failed') 로 reject. timeoutMs 기본은 구현 몫. */
   connect(peerId: string, timeoutMs?: number): Promise<Conn>;
   destroy(): void;
+  /** 시그널링 재등록을 포기함(다른 peer 가 내 id 를 가져감). 열린 채널은 그대로지만 새 입장·다시 붙기는 못 받는다. 구현 선택. */
+  onSignalingLost?(cb: () => void): void;
 }
 
 export interface Network {

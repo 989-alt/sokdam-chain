@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mulberry32, type Word } from '../engine';
-import { ClientSession, joinRoom } from './client-session';
+import { ClientSession, joinRoom, REDIAL_GAP_MS } from './client-session';
 import { createHost, type HostSession } from './host-session';
 import { createLoopback, type Loopback } from './loopback';
 import { hostPeerId, randomId } from './peer-id';
@@ -292,18 +292,40 @@ describe('끊김 감지', () => {
     host.leave();
   });
 
-  it('방장 망 끊김·잠듦(등록은 남고 응답 없음) → 확인·다시 붙기 두 번 unreachable 이면 18초 안에 host-left', async () => {
+  it('방장 망 끊김·잠듦(등록은 남고 응답 없음) → 확인(6초)·다시 붙기(15초) 두 번 unreachable 이면 24~28초에 host-left', async () => {
     for (const offset of [0, 500, 999]) {
       const { net, host, all } = await room(3);
       await flush(offset);
       net.freeze(hostPeerId(host.code));
       clearInterval((host as any).ping);
-      await flush(15000);
+      await flush(24000); // 다시 붙기가 6초만 기다리면 여기서 이미 끝나 있다(느린 ICE 오판)
       expect(all[1]!.view.phase).not.toBe('ended');
-      await flush(3000);
+      await flush(4000);
       expect(all.slice(1).map((c) => c.view.ended)).toEqual(['host-left', 'host-left']);
       vi.clearAllTimers();
     }
+  });
+
+  it('다시 붙기 중 내 시그널링 오류(socket-closed 등)는 unreachable 이 아니라 net — host-left 아닌 lost', async () => {
+    const net = createLoopback();
+    let broken = false;
+    const mine: Network = {
+      open: async (id) => {
+        const ep = await net.open(id);
+        return { ...ep, connect: (p, t) => (broken ? Promise.reject(new Error('socket-closed')) : ep.connect(p, t)) };
+      },
+    };
+    const r = await room(2, {}, undefined, net);
+    const jp = joinRoom({ network: mine, code: r.host.code, name: '와이파이' });
+    await flush();
+    const j = await jp;
+    if (!j.ok) throw new Error(j.reason);
+    const c = j.client;
+    broken = true;
+    net.mute((c as any).conn.local, true);
+    await flush(11000 + REDIAL_GAP_MS * 2 + 500); // 확인 net(무시) → 10초 → 시도 3번, 사이 3초
+    expect(c.view.ended).toBe('lost');
+    r.host.leave();
   });
 
   it('다시 붙는 중 leave 는 닫힌 연결로 보내지 않고 끝내며, 더 붙지 않는다', async () => {

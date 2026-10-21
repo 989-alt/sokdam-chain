@@ -47,26 +47,30 @@ export const peerNetwork: Network = {
         peer.destroy();
         reject(new Error('timeout'));
       }, OPEN_TIMEOUT_MS);
-      // 연결 중인 connect() 들의 실패 통지(peer-unavailable 은 Peer 의 error 로 온다).
+      // 연결 중인 connect() 들의 실패 통지(peer-unavailable 은 Peer 의 error 로 온다. network·socket-* 등 내 시그널링 오류도 같은 길).
       const pending = new Set<(e: Error) => void>();
+      // 시그널링만 끊긴 것 — 열린 채널은 그대로, 새 입장·다시 붙기를 받으려고 될 때까지 다시 등록한다(1·2·4…30초).
+      // reconnect() 실패도 disconnected 로 다시 오므로 예약은 여기서만 하고 간격을 두 배로 늘린다. 다시 열리면 초기화, destroy 면 멈춘다.
+      let backoff = 1000;
+      let retry: ReturnType<typeof setTimeout> | undefined;
+      let stopped = false;
+      let lostCb: () => void = () => {};
       peer.on('error', (e) => {
         if (!opened) {
           peer.destroy();
-          reject(new Error(e.type));
-        } else for (const f of pending) f(new Error(e.type));
+          return reject(new Error(e.type));
+        }
+        for (const f of pending) f(new Error(e.type));
+        if (e.type === 'unavailable-id' && !stopped) {
+          stopped = true; // 다른 peer 가 내 id 를 가져감 — 다시 등록해도 같은 답. 돌지 않고 알린다
+          lostCb();
+        }
       });
-      // 시그널링만 끊긴 것 — 열린 채널은 그대로, 새 입장·다시 붙기를 받으려고 될 때까지 다시 등록한다(1·2·4…30초).
-      let backoff = 1000;
-      let retry: ReturnType<typeof setTimeout> | undefined;
-      const tryReconnect = () => {
-        if (peer.destroyed || !peer.disconnected) return void (backoff = 1000);
-        peer.reconnect();
-        retry = setTimeout(tryReconnect, backoff);
-        backoff = Math.min(backoff * 2, RECONNECT_MAX_MS);
-      };
       peer.on('disconnected', () => {
+        if (stopped) return; // destroy() 도 disconnected 를 낸다
         clearTimeout(retry);
-        retry = setTimeout(tryReconnect, 0); // destroy() 도 disconnected 를 낸다 — 한 박자 뒤 destroyed 로 걸러진다
+        retry = setTimeout(() => peer.disconnected && !peer.destroyed && peer.reconnect(), backoff);
+        backoff = Math.min(backoff * 2, RECONNECT_MAX_MS);
       });
       peer.on('connection', (dc) => {
         dc.on('open', () => onConn(wrap(dc)));
@@ -97,9 +101,11 @@ export const peerNetwork: Network = {
               dc.on('error', () => done(new Error('connect-failed')));
             }),
           destroy: () => {
+            stopped = true;
             clearTimeout(retry);
             peer.destroy();
           },
+          onSignalingLost: (cb) => void (lostCb = cb),
         });
       });
     }),
