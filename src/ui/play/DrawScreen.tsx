@@ -125,7 +125,7 @@ export function DrawScreen(p: DrawScreenProps) {
               </div>
               {prompt.imgId ? (
                 <div class="prompt-pic">
-                  <Picture blob={p.image(prompt.imgId)} alt="앞 사람 그림" />
+                  <Picture blob={p.image(prompt.imgId)} alt="앞사람 그림" />
                 </div>
               ) : (
                 <div class={prompt.long ? 'text long' : 'text'}>{prompt.text}</div>

@@ -38,7 +38,7 @@ export type EndKind = 'host-left' | 'finished' | 'lost' | 'left';
 
 export const endText: Record<EndKind, { title: string; body: string }> = {
   'host-left': { title: '방장 연결이 끊겨 게임이 끝났어요', body: '그림과 답은 방장 기기에만 있었어요. 홈으로 가서 새로 시작해요.' },
-  finished: { title: '게임이 끝났어요', body: '함께해 줘서 고마워요. 홈으로 가서 새로 시작해요.' },
+  finished: { title: '게임이 끝났어요', body: '모든 차례가 끝났어요. 홈으로 가서 새로 시작해요.' },
   lost: { title: '연결이 끊겼어요', body: '와이파이를 확인하고 이어하기를 눌러 보세요.' },
   left: { title: '방에서 나왔어요', body: '홈으로 가서 다시 들어가거나 새 방을 만들어요.' },
 };

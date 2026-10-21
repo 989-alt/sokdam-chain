@@ -12,7 +12,7 @@ export type PromptView = { label: string; text: string | null; imgId: string | n
 export function drawPrompt(input: Input, first: boolean): PromptView {
   const text = input.kind === 'image' ? null : (input.text ?? '');
   const label =
-    input.kind === 'meaning' ? '이 뜻을 그림으로 그려요' : input.kind === 'image' ? '앞 그림을 보고 그려요' : first ? '이 말을 그림으로 그려요' : '앞 사람 답을 보고 그려요';
+    input.kind === 'meaning' ? '이 뜻을 그림으로 그려요' : input.kind === 'image' ? '앞 그림을 보고 그려요' : first ? '이 말을 그림으로 그려요' : '앞사람 답을 보고 그려요';
   const hint = input.fallbackNote ? FALLBACK_NOTE : first ? null : '원래 속담은 결과 보기에서 나와요';
   return { label, text, imgId: input.kind === 'image' ? (input.imgId ?? null) : null, hint, long: (text?.length ?? 0) > LONG };
 }

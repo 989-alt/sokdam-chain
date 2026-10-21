@@ -48,9 +48,9 @@ export function GuessScreen(p: GuessScreenProps) {
     <section class="screen screen-guess play-guess" aria-label="답 쓰기 차례">
       <Topbar title="속담 이어그리기">{p.chips}</Topbar>
       <div class="guess-book handoff-in">
-        <article class="page" aria-label="앞 사람 것">
+        <article class="page" aria-label="앞사람 것">
           <div class="coil" aria-hidden="true" />
-          <div class="who">{p.input.kind === 'image' ? '앞 사람 그림' : '앞 사람 것'}</div>
+          <div class="who">{p.input.kind === 'image' ? '앞사람 그림' : '앞사람 것'}</div>
           {p.input.fallbackNote && (
             <div class="fallback">
               <Icon name="image-off" />
@@ -58,7 +58,7 @@ export function GuessScreen(p: GuessScreenProps) {
             </div>
           )}
           {p.input.kind === 'image' ? (
-            <Picture blob={p.input.imgId ? p.image(p.input.imgId) : null} alt="앞 사람이 그린 그림" />
+            <Picture blob={p.input.imgId ? p.image(p.input.imgId) : null} alt="앞사람이 그린 그림" />
           ) : (
             <div class="guess">
               <q>{p.input.text}</q>

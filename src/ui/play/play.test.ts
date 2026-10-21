@@ -13,7 +13,7 @@ describe('drawPrompt', () => {
     expect(v.text).toBe('아무리 잘하는 사람도 실수한다.');
   });
   it('앞 답 / 대체 안내 / 앞 그림', () => {
-    expect(drawPrompt({ kind: 'text', text: '바나나' }, false)).toMatchObject({ label: '앞 사람 답을 보고 그려요', hint: '원래 속담은 결과 보기에서 나와요', long: false });
+    expect(drawPrompt({ kind: 'text', text: '바나나' }, false)).toMatchObject({ label: '앞사람 답을 보고 그려요', hint: '원래 속담은 결과 보기에서 나와요', long: false });
     expect(drawPrompt({ kind: 'text', text: '바나나', fallbackNote: true }, false).hint).toBe(FALLBACK_NOTE);
     expect(drawPrompt({ kind: 'image', imgId: 'r1-0-0', fallbackNote: true }, false)).toMatchObject({ label: '앞 그림을 보고 그려요', text: null, imgId: 'r1-0-0', hint: '앞사람 것이 없어서 그 앞 내용을 보여줘요' });
   });
