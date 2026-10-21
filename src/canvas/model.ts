@@ -22,9 +22,14 @@ export class Drawing {
     this.width = width;
   }
 
-  /** Only the first pointer draws; later pointers (second finger, palm) are ignored. */
-  down(id: number, x: number, y: number): boolean {
-    if (this.disabled || this.activeId !== null) return false;
+  /**
+   * Only the first pointer draws; later pointers (second finger, palm) are ignored.
+   * A new primary pointer means the old one's pointerup was lost: close it instead of staying stuck.
+   */
+  down(id: number, x: number, y: number, primary = false): boolean {
+    if (this.disabled) return false;
+    if (primary && this.activeId !== null) this.finish();
+    if (this.activeId !== null) return false;
     this.activeId = id;
     this.active = { color: this.color, width: this.width, points: [x, y] };
     return true;

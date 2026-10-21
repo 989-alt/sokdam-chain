@@ -50,6 +50,28 @@ async function exportInfo(page: Page) {
   });
 }
 
+// Export, then read pixels at model coordinates (800×600 image).
+async function exportPixels(page: Page, pts: [number, number][]) {
+  return page.evaluate(async (pts) => {
+    const dc = (window as any).__dc;
+    const bmp = await createImageBitmap(await dc.exportDrawing(dc.drawing));
+    const c = document.createElement('canvas');
+    c.width = bmp.width;
+    c.height = bmp.height;
+    const ctx = c.getContext('2d')!;
+    ctx.drawImage(bmp, 0, 0);
+    return pts.map(([x, y]) => Array.from(ctx.getImageData(x, y, 1, 1).data.slice(0, 3)));
+  }, pts);
+}
+const isWhite = (px: number[]) => px.every((v) => v >= 240);
+const isInk = (px: number[]) => px.every((v) => v < 80);
+
+// Screen point at fraction (fx, fy) of the canvas box.
+async function at(page: Page, fx: number, fy: number) {
+  const b = (await page.locator('canvas').boundingBox())!;
+  return { x: b.x + b.width * fx, y: b.y + b.height * fy };
+}
+
 async function boxRatio(page: Page) {
   const b = (await page.locator('canvas').boundingBox())!;
   const vp = page.viewportSize()!;
@@ -155,4 +177,65 @@ test('tool buttons have aria-labels and are at least 48px', async ({ page }) => 
   expect(await strokes(page)).toBe(0);
   await page.getByRole('button', { name: '되돌리기' }).click();
   expect(await strokes(page)).toBe(1);
+});
+
+test('same physical point maps to the same model coordinate across viewports and DPR', async ({ browser }) => {
+  for (const cfg of [
+    { viewport: { width: 1024, height: 768 }, deviceScaleFactor: 1 },
+    { viewport: { width: 768, height: 1024 }, deviceScaleFactor: 1 },
+    { viewport: { width: 1024, height: 768 }, deviceScaleFactor: 2 },
+  ]) {
+    const ctx = await browser.newContext(cfg);
+    const page = await ctx.newPage();
+    await open(page);
+    const p = await at(page, 0.25, 0.5);
+    await page.mouse.click(p.x, p.y);
+    const pts = await page.evaluate(() => (window as any).__dc.drawing.visible()[0].points as number[]);
+    expect(pts).toHaveLength(2);
+    expect(Math.abs(pts[0]! - 200)).toBeLessThan(1.5);
+    expect(Math.abs(pts[1]! - 300)).toBeLessThan(1.5);
+    await ctx.close();
+  }
+});
+
+test('eraser paints white; undo brings the ink back', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: '굵은 마커' }).click();
+  let p = await at(page, 100 / 800, 0.5);
+  await page.mouse.move(p.x, p.y);
+  await page.mouse.down();
+  p = await at(page, 700 / 800, 0.5);
+  await page.mouse.move(p.x, p.y, { steps: 10 });
+  await page.mouse.up();
+
+  await page.getByRole('button', { name: '지우개' }).click();
+  p = await at(page, 0.5, 0.5);
+  await page.mouse.click(p.x, p.y);
+
+  let [mid, side] = await exportPixels(page, [[400, 300], [200, 300]]);
+  expect(isWhite(mid!)).toBe(true);
+  expect(isInk(side!)).toBe(true);
+
+  await page.getByRole('button', { name: '되돌리기' }).click();
+  [mid, side] = await exportPixels(page, [[400, 300], [200, 300]]);
+  expect(isInk(mid!)).toBe(true);
+  expect(isInk(side!)).toBe(true);
+});
+
+test('lost pointerup or right-click never leaves the canvas stuck', async ({ page }) => {
+  await open(page);
+  const p = await at(page, 0.3, 0.3);
+  // a primary pointer that goes down and never comes up (capture also throws for this fake id)
+  await page.locator('canvas').dispatchEvent('pointerdown', { pointerId: 77, isPrimary: true, pointerType: 'touch', clientX: p.x, clientY: p.y, button: 0 });
+  // right button: ignored, no stroke, and no context menu default
+  await page.mouse.move(p.x + 50, p.y + 50);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.up({ button: 'right' });
+  expect(await strokes(page)).toBe(1); // only the stuck one, still open
+  // the next real stroke still draws
+  await page.mouse.down();
+  await page.mouse.move(p.x + 150, p.y + 100, { steps: 4 });
+  await page.mouse.up();
+  expect(await strokes(page)).toBe(2);
+  expect(await page.evaluate(() => (window as any).__dc.drawing.activeId)).toBeNull();
 });

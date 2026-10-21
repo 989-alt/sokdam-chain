@@ -21,6 +21,16 @@ describe('Drawing', () => {
     expect(d.visible()[0]!.points).toEqual([0, 0, 5, 5]);
   });
 
+  it('a new primary pointer closes a stroke whose pointerup was lost', () => {
+    const d = new Drawing();
+    d.down(1, 0, 0, true);
+    expect(d.down(2, 9, 9, false)).toBe(false); // second finger still ignored
+    expect(d.down(3, 5, 5, true)).toBe(true);
+    d.up(3);
+    expect(d.visible()).toHaveLength(2);
+    expect(d.activeId).toBeNull();
+  });
+
   it('undo is per stroke and clear-all is undoable', () => {
     const d = new Drawing();
     line(d);

@@ -45,11 +45,6 @@ export function DrawingCanvas({ drawing, disabled = false }: Props) {
 
   useEffect(() => drawing.setDisabled(disabled), [drawing, disabled]);
 
-  useEffect(() => {
-    if (eraser) drawing.setTool(ERASER.color, ERASER.px);
-    else drawing.setTool(PEN_COLORS[colorIdx]!.hex, PEN_WIDTHS[widthIdx]!.px);
-  }, [drawing, colorIdx, widthIdx, eraser]);
-
   const toModel = (e: PointerEvent): [number, number] => {
     const r = canvasRef.current!.getBoundingClientRect();
     return [((e.clientX - r.left) * MODEL_W) / r.width, ((e.clientY - r.top) * MODEL_H) / r.height];
@@ -57,10 +52,19 @@ export function DrawingCanvas({ drawing, disabled = false }: Props) {
 
   const onDown = (e: PointerEvent) => {
     e.preventDefault();
-    if (!drawing.down(e.pointerId, ...toModel(e))) return;
-    canvasRef.current!.setPointerCapture(e.pointerId);
-    const s = drawing.active!;
-    drawStroke(canvasRef.current!.getContext('2d')!, s, 0);
+    const c = canvasRef.current!;
+    if (c.getBoundingClientRect().width === 0) return; // avoid NaN points
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // set here, not in an effect: effects run after a frame and a fast tap would get the old tool
+    if (eraser) drawing.setTool(ERASER.color, ERASER.px);
+    else drawing.setTool(PEN_COLORS[colorIdx]!.hex, PEN_WIDTHS[widthIdx]!.px);
+    if (!drawing.down(e.pointerId, ...toModel(e), e.isPrimary)) return;
+    try {
+      c.setPointerCapture(e.pointerId);
+    } catch {
+      // capture is a nicety (drawing past the edge); never let it strand the stroke
+    }
+    drawStroke(c.getContext('2d')!, drawing.active!, 0);
   };
 
   const onMove = (e: PointerEvent) => {
@@ -68,7 +72,8 @@ export function DrawingCanvas({ drawing, disabled = false }: Props) {
     e.preventDefault();
     const s = drawing.active!;
     const from = s.points.length / 2;
-    for (const ev of e.getCoalescedEvents?.() ?? [e]) drawing.move(e.pointerId, ...toModel(ev));
+    const l = e.getCoalescedEvents?.();
+    for (const ev of l?.length ? l : [e]) drawing.move(e.pointerId, ...toModel(ev));
     drawStroke(canvasRef.current!.getContext('2d')!, s, from);
   };
 
@@ -97,6 +102,8 @@ export function DrawingCanvas({ drawing, disabled = false }: Props) {
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
+          onLostPointerCapture={onUp}
+          onContextMenu={(e) => e.preventDefault()}
         />
       </div>
       <div class="dc-tools" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
