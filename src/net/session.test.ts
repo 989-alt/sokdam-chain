@@ -724,6 +724,44 @@ describe('결과·투표·한 판 더', () => {
     host.leave();
   });
 
+  it('다시 붙는 중 투표는 닫힌 연결로 보내지 않고 미뤘다가 재합류 sync 뒤 보낸다', async () => {
+    const { net, host, all } = await playToReview({ review: 'timer', reviewSeconds: 3 });
+    await flush(3000 * 24);
+    const c = all[1]!;
+    net.cut((c as any).conn.local);
+    expect(c.view.reconnecting).toBe(true);
+    const sent = vi.spyOn((c as any).conn, 'send');
+    c.vote(null, null);
+    expect(sent).not.toHaveBeenCalled();
+    await flush(20);
+    expect(c.view.reconnecting).toBe(false);
+    expect(c.view.voted).toBe(true);
+    expect(host.view.voted).toBe(1);
+    for (const o of [all[0]!, all[2]!, all[3]!]) o.vote(null, null);
+    await flush();
+    expect(host.view.phase).toBe('vote-result');
+    host.leave();
+  });
+
+  it('끊김을 알기 전 죽은 채널로 보낸 투표는 재합류 sync 가 voted=false 로 돌려 다시 낼 수 있다', async () => {
+    const { net, host, all } = await playToReview({ review: 'timer', reviewSeconds: 3 });
+    await flush(3000 * 24);
+    const c = all[1]!;
+    const local = (c as any).conn.local;
+    net.mute(local, true);
+    c.vote(null, null);
+    expect(c.view.voted).toBe(true);
+    net.mute(local, false);
+    net.cut(local);
+    await flush(20);
+    expect(c.view.reconnecting).toBe(false);
+    expect(c.view.voted).toBe(false);
+    for (const o of all) o.vote(null, null);
+    await flush();
+    expect(host.view.phase).toBe('vote-result');
+    host.leave();
+  });
+
   it('끊긴 학생 투표는 60초 뒤 기권', async () => {
     const { net, host, all } = await playToReview({ review: 'timer', reviewSeconds: 3 });
     await flush(3000 * 24);

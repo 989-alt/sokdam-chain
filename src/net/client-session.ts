@@ -147,6 +147,8 @@ export class ClientSession {
   private tries = 0;
   /** 다시 붙는 중에 한 제출 — 재합류 sync 가 같은 칸을 미제출로 주면 그때 보낸다. */
   private queued: { chainIdx: number; step: number; deadlineAt: number | null; run: () => void } | null = null;
+  /** 다시 붙는 중에 한 투표 — 재합류 sync 가 아직 투표 중·미투표면 그때 보낸다. */
+  private queuedVote: (() => void) | null = null;
   private probedFor = -1; // 이 lastHeard 에 대해 이미 물어봤으면 다시 안 묻는다
   /** 마지막으로 방장 소식을 들은 뒤 unreachable 횟수(확인·다시 붙기 합산). */
   private unreachable = 0;
@@ -221,6 +223,7 @@ export class ClientSession {
 
   vote(drawing: EntryKey | null, answer: EntryKey | null): void {
     if (this.view.phase !== 'vote' || this.view.voted) return;
+    if (this.redialing || this.rejoining) return void (this.queuedVote = () => this.vote(drawing, answer));
     this.set({ voted: true });
     this.send({ t: 'vote', drawing, answer });
   }
@@ -345,6 +348,9 @@ export class ClientSession {
     const q = this.queued;
     this.queued = null;
     if (q && cell && phase === 'play' && !submitted && q.chainIdx === cell.chainIdx && q.step === cell.step && q.deadlineAt === cell.deadlineAt) q.run();
+    const qv = this.queuedVote;
+    this.queuedVote = null;
+    if (qv && phase === 'vote' && !voted) qv();
     this.armAuto();
   }
 

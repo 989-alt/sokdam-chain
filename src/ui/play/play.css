@@ -12,7 +12,9 @@
 .play-draw .dc-row:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 0; padding-bottom: calc(var(--size-touch-gap) / 2); }
 .play-draw .dc-row:last-child { border-radius: 0 0 var(--radius-md) var(--radius-md); border-top: 0; padding-top: calc(var(--size-touch-gap) / 2); margin-top: calc(-1 * var(--spacing-3)); }
 .play-draw .tool:disabled, .play-draw .swatch:disabled { opacity: 0.7; cursor: not-allowed; }
-.play-draw .prompt .text.long { font-size: var(--font-size-body-lg); line-height: 1.25; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* 긴 제시(뜻 ≤60자·앞사람 답 ≤40자)는 줄이지 않고 다 보인다 — 20px 로 접고 제시 칸이 늘어난 만큼 캔버스가 준다(DESIGN §3-1 긴 제시 변주) */
+.play-draw .head:has(.text.long) { height: auto; min-height: 100px; }
+.play-draw .prompt .text.long { font-size: var(--font-size-body); line-height: 1.2; white-space: normal; }
 .play-draw .prompt .hint.err { color: var(--color-destructive); font-weight: var(--font-weight-bold); }
 .play-draw .prompt-pic { height: 52px; width: calc(52px * 4 / 3); }
 .play-draw .prompt-pic .drawing, .play-draw .prompt-pic .missing { width: 100%; height: 100%; padding: 0; font-size: var(--font-size-caption); }
@@ -24,7 +26,7 @@
   .play-draw .book { grid-template-columns: var(--size-book-coil) minmax(0, 1fr) 288px; row-gap: var(--spacing-2); grid-template-rows: auto auto auto auto 1fr; grid-template-areas: "coil prompt notice" "coil stage timer" "coil stage tools1" "coil stage tools2" "coil stage submit"; }
   .play-draw .book > .notice { display: flex; grid-area: notice; align-self: start; height: auto; min-height: 48px; padding: var(--spacing-1) var(--spacing-3); gap: var(--spacing-2); font-size: 22px; text-align: center; text-wrap: balance; }
   .play-draw .head { display: contents; }
-  .play-draw .prompt { grid-area: prompt; height: 100px; }
+  .play-draw .prompt { grid-area: prompt; min-height: 100px; }
   .play-draw .head .timer { display: flex; grid-area: timer; }
   .play-draw .timer .ring { width: var(--size-timer-ring); height: var(--size-timer-ring); }
   .play-draw .timer .num { font-size: var(--font-size-timer); }

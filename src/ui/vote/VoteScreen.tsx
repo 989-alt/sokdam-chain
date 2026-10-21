@@ -1,6 +1,6 @@
 // 화면 10 투표(스티커 붙이기): 베스트 그림 1 + 베스트 답 1, 내 것은 비활성 + "내 것". 온라인·돌려쓰기 공용.
 import type { ComponentChildren } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import sticker from '../../../assets/img/UI-01-sticker-vote.webp';
 import type { EntryKey, ReviewPage } from '../../engine';
 import { Picture } from '../play/Picture';
@@ -31,6 +31,10 @@ export function VoteScreen(p: VoteScreenProps) {
   const [drawing, setDrawing] = useState<EntryKey | null>(null);
   const [answer, setAnswer] = useState<EntryKey | null>(null);
   const [sent, setSent] = useState(false);
+  // 방장이 표를 못 받았다고 돌려주면(voted true→false, 재합류 sync) 다시 고를 수 있게
+  useEffect(() => {
+    if (!p.voted) setSent(false);
+  }, [p.voted]);
   const items = voteItems(p.pages, p.candidates, p.mySlot);
   const ok = canSubmitVote(items, drawing, answer);
   const by = (x: VoteItem, what: string) => `${p.nameOf(ownerOf(p.pages, x.chainIdx) ?? x.chainIdx)}의 스케치북 · ${p.nameOf(x.entry.bySlot)} ${what}`;
