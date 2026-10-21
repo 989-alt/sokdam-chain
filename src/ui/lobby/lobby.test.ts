@@ -6,8 +6,9 @@ const p = (slot: number, connected = true) => ({ slot, name: `n${slot}`, connect
 
 describe('lobby', () => {
   it('start reason below 4 says 4명부터 and lists disconnected names', () => {
-    expect(startReason([p(0), p(1), p(2, false)])).toBe('4명부터 시작할 수 있어요 · 지금 3명 · 연결 끊김: n2');
-    expect(startReason([p(0), p(1), p(2), p(3)])).toContain('최대 6명');
+    expect(startReason([p(0), p(1), p(2, false)], false)).toBe('4명부터 시작할 수 있어요 · 지금 3명 · 연결 끊김: n2');
+    expect(startReason([p(0), p(1), p(2), p(3)], true)).toContain('최대 6명');
+    expect(startReason([p(0), p(1), p(2), p(3)], false)).toBe('게임을 시작하는 중이에요');
   });
   it('summary reflects teacher-only and manual review', () => {
     const s = settingsSummary({ ...DEFAULT_SETTINGS, level: null, listSource: 'teacher-only', review: 'manual', sound: false });

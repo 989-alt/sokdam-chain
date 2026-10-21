@@ -1,7 +1,7 @@
 // 화면 꺼짐 방지(PRD §8). 지원 기기만, 실패는 조용히 무시. 탭이 다시 보이면 다시 요청한다(브라우저가 숨김 때 자동 해제하므로).
 import { useEffect } from 'preact/hooks';
 
-type Sentinel = { release(): Promise<void> };
+type Sentinel = { readonly released: boolean; release(): Promise<void> };
 type Nav = { wakeLock?: { request(type: 'screen'): Promise<Sentinel> } };
 type Doc = Pick<Document, 'visibilityState' | 'addEventListener' | 'removeEventListener'>;
 
@@ -10,7 +10,8 @@ export function keepAwake(nav: Nav = navigator as Nav, doc: Doc = document): () 
   let lock: Sentinel | null = null;
   let stopped = false;
   const request = async () => {
-    if (stopped || !nav.wakeLock || doc.visibilityState !== 'visible') return;
+    // 아직 쥔 lock 이 있으면 또 요청하지 않는다(브라우저는 숨김 때 released 로 바꾼다).
+    if (stopped || !nav.wakeLock || doc.visibilityState !== 'visible' || (lock && !lock.released)) return;
     try {
       const l = await nav.wakeLock.request('screen');
       if (stopped) void l.release().catch(() => {});

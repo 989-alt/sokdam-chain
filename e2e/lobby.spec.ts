@@ -153,6 +153,18 @@ test('browser back in the room does not change the screen', async ({ page }) => 
   await expect(page).toHaveURL(/#\/room$/);
 });
 
+test('browser back inside pass-around stays; 홈으로 leaves', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: '돌려쓰기 시작' }).click();
+  await expect(page).toHaveURL(/#\/pass$/);
+  await page.goBack();
+  await page.waitForTimeout(300);
+  await expect(page).toHaveURL(/#\/pass$/);
+  await expect(page.getByLabel('기기 한 대 돌려쓰기')).toBeVisible();
+  await page.getByRole('button', { name: '홈으로' }).click();
+  await expect(page.getByRole('heading', { name: '여럿이 각자 기기로' })).toBeVisible();
+});
+
 test.describe('teacher link', () => {
   test('valid only-list → badge with count, level hidden, room uses it', async ({ page }) => {
     const enc = encodeList('only', [
@@ -202,7 +214,7 @@ for (const viewport of [
         }
       const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(scrollW).toBeLessThanOrEqual(viewport.width);
-      for (const h of await page.locator('.btn.primary:visible, .btn.secondary:visible, .opt:visible').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height)))
+      for (const h of await page.locator('.btn.primary:visible, .btn.secondary:visible, .opt:visible, button.mute:visible').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height)))
         expect(h).toBeGreaterThanOrEqual(56);
       const body = await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize));
       expect(body).toBeGreaterThanOrEqual(18);

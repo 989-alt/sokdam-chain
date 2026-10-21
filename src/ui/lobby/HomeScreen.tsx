@@ -1,6 +1,6 @@
 // 화면 1 홈: 모드 선택(여럿이 각자 기기로 / 기기 한 대 돌려쓰기), 이어하기, 교사용 작은 링크.
 import { useState } from 'preact/hooks';
-import title from '../../../assets/img/KA-02-title.png';
+import title from '../../../assets/img/KA-02-title.webp';
 import { hrefOf } from '../../app/router';
 import { Icon } from '../shared/Icon';
 import { Topbar } from '../shared/Topbar';

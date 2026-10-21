@@ -1,5 +1,4 @@
 /* tokens.json 0.2.1 → CSS 변수(이름 = 토큰 경로). 승인 시안 3-cartoon-book.html 의 :root 그대로. 색 리터럴은 이 파일에만 둔다. */
-/* page-turn 선언은 콜론 앞에 공백을 둔다 — PRD S4 정적 검사(TURN 서버 grep)에 걸리지 않게. */
 :root {
   --color-background: #F0F4FF; --color-foreground: #1E1B4B;
   --color-card: #FFFFFF; --color-card-foreground: #1E1B4B;
@@ -65,7 +64,7 @@
   --radius-sm: 6px; --radius-md: 16px; --radius-lg: 24px; --radius-xl: 32px; --radius-page: 0 0 20px 20px; --radius-full: 9999px;
   --border-width-default: 3px; --border-width-strong: 4px; --border-width-selected: 5px;
   --shadow-card: 0 4px 0 #1E1B4B; --shadow-raised: 0 6px 0 #1E1B4B; --shadow-pressed: 0 1px 0 #1E1B4B; --shadow-sticker: 0 2px 0 #1E1B4B;
-  --motion-duration-fast: 120ms; --motion-duration-normal: 240ms; --motion-duration-page-turn : 420ms; --motion-duration-handoff: 600ms;
+  --motion-duration-fast: 120ms; --motion-duration-normal: 240ms; --motion-duration-page-turn: 420ms; --motion-duration-handoff: 600ms;
   --motion-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
   --motion-easing-in: cubic-bezier(0.4, 0, 1, 1);        /* 떠날 때 가속 */
   --motion-easing-out: cubic-bezier(0, 0, 0.2, 1);       /* 도착할 때 감속 */
@@ -73,4 +72,4 @@
   /* 시안 body 의 CSS 점무늬 대체층 색(UI-07 을 못 읽을 때만 보임) — 토큰 foreground 8% */
   --color-paper-dot: rgba(30, 27, 75, 0.08);
 }
-@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; --motion-duration-normal: 0ms; --motion-duration-page-turn : 0ms; --motion-duration-handoff: 0ms; } }
+@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; --motion-duration-normal: 0ms; --motion-duration-page-turn: 0ms; --motion-duration-handoff: 0ms; } }

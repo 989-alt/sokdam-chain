@@ -1,6 +1,6 @@
 // 화면 12 종료 안내. 세션 키 삭제는 net 층이 한다 — 여기는 문구와 버튼만.
 import { useState } from 'preact/hooks';
-import sorry from '../../../assets/img/KA-03-mascot-faces/sorry.png';
+import sorry from '../../../assets/img/KA-03-mascot-faces/sorry.webp';
 import { Icon } from '../shared/Icon';
 import { endText, type EndKind } from '../shared/messages';
 

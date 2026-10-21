@@ -137,7 +137,7 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
           <div class="help">방 전체 설정이에요 · 내 기기만 끄려면 위의 소리 단추를 눌러요</div>
         </fieldset>
         <div class="form-foot">
-          <button type="button" class="btn secondary press" onClick={onBack}>
+          <button type="button" class="btn secondary press" disabled={busy} onClick={onBack}>
             <Icon name="chevron-left" />
             뒤로
           </button>

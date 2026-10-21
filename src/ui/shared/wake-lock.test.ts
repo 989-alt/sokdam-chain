@@ -18,12 +18,21 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 describe('keepAwake', () => {
   it('requests screen lock, re-requests when visible again, releases on stop', async () => {
     const release = vi.fn(async () => {});
-    const request = vi.fn(async () => ({ release }));
+    const held: { released: boolean; release: typeof release }[] = [];
+    const request = vi.fn(async () => {
+      const s = { released: false, release };
+      held.push(s);
+      return s;
+    });
     const doc = fakeDoc();
     const stop = keepAwake({ wakeLock: { request } }, doc as never);
     await flush();
     expect(request).toHaveBeenCalledWith('screen');
+    doc.fire(); // 쥔 채로 visible 이벤트 — 두 번째 요청 없음
+    await flush();
+    expect(request).toHaveBeenCalledTimes(1);
     doc.visibilityState = 'hidden';
+    held[0]!.released = true; // 숨김 때 브라우저가 해제
     doc.fire();
     await flush();
     expect(request).toHaveBeenCalledTimes(1); // 숨김 중엔 요청 안 함
@@ -46,10 +55,10 @@ describe('keepAwake', () => {
 
   it('releases a lock that arrives after stop', async () => {
     const release = vi.fn(async () => {});
-    let resolve!: (s: { release: typeof release }) => void;
+    let resolve!: (s: { released: boolean; release: typeof release }) => void;
     const stop = keepAwake({ wakeLock: { request: () => new Promise((r) => (resolve = r)) } }, fakeDoc() as never);
     stop();
-    resolve({ release });
+    resolve({ released: false, release });
     await flush();
     expect(release).toHaveBeenCalled();
   });

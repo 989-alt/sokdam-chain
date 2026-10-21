@@ -5,7 +5,7 @@ html, body { margin: 0; }
 body { font-family: var(--font-family-body); font-size: var(--font-size-body); line-height: var(--font-lineHeight-body); color: var(--color-foreground); word-break: keep-all; overflow-wrap: break-word; -webkit-font-smoothing: antialiased;
   background-color: var(--color-background);
   /* 1층: Sol UI-07 종이결 타일(1254² 불투명 → 512px 반복, 점 간격 ≈28px) · 2층: 파일을 못 읽을 때만 보이는 CSS 점무늬 */
-  background-image: url("../../assets/img/UI-07-paper.png"), radial-gradient(var(--color-paper-dot) 2px, transparent 2.5px);
+  background-image: url("../../assets/img/UI-07-paper.webp"), radial-gradient(var(--color-paper-dot) 2px, transparent 2.5px);
   background-size: 512px 512px, 28px 28px; }
 ::selection { background: var(--color-accent); color: var(--color-accent-foreground); }
 button, input { font: inherit; color: inherit; }
@@ -21,7 +21,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
    tile 523×499: slice 90 → 32px (k=0.356)   tray 628×344: slice 90 80 100 80 → 12 11 13 11 (k=0.133, 턱이 ≈7px 로 보여 8px 패딩 안에 든다)
    밑판이 킷에 구워져 있어 box-shadow 는 끄고(눌림은 translateY 만), 글자는 밑판 위 면 중앙에 오도록 padding-bottom 으로 올린다. 면색은 CSS 필터로 바꾸지 않는다(DESIGN §10). 파일이 없으면 border/background 의 CSS 면으로 돌아간다.
    주 버튼 면 실측(2026-10-21): 면 중앙 흰 글자 5.14:1, 광택 하이라이트 위 2.68:1 → 글자·아이콘은 왼쪽 가장자리에서 ≥ 40px 안쪽(하이라이트가 든 왼쪽 모서리 조각 38px 바깥)에 두고 가운데 정렬한다. .btn.primary 왼쪽 패딩 40 = 경계 3 + 37 + 글자 시작, .submit 은 가운데 정렬이라 더 안쪽. */
-.tile { background: var(--color-card); color: var(--color-card-foreground); border: var(--border-width-default) solid var(--color-border); border-radius: var(--radius-lg); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/tile.png") 90 fill / 32px stretch; }
+.tile { background: var(--color-card); color: var(--color-card-foreground); border: var(--border-width-default) solid var(--color-border); border-radius: var(--radius-lg); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/tile.webp") 90 fill / 32px stretch; }
 
 /* 아이콘 — Lucide 인라인 심볼, 한 가족·한 굵기(2.5) */
 .ic { width: var(--size-icon-md); height: var(--size-icon-md); flex: none; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -34,8 +34,8 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 
 /* 버튼 변형(shadcn 구조, 토큰으로 칠함) */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-2); min-height: var(--size-touch-min); padding: 0 var(--spacing-5); border-radius: var(--radius-lg); font-family: var(--font-family-display); font-size: var(--font-size-button); line-height: 1.1; border: var(--border-width-default) solid var(--color-border); white-space: nowrap; }
-.btn.primary { --press-dy: 5px; min-height: var(--size-touch-primary); padding: 0 var(--spacing-10) 12px; font-size: 30px; background: var(--color-primary); color: var(--color-primary-foreground); box-shadow: none; border-radius: var(--radius-full); border-image: url("../../assets/img/UI-06-kit/btn-primary.png") 110 140 90 140 fill / 30px 38px 24px 38px stretch; }
-.btn.secondary { background: var(--color-secondary); color: var(--color-secondary-foreground); box-shadow: none; padding-bottom: 10px; border-radius: var(--radius-full); border-image: url("../../assets/img/UI-06-kit/btn-secondary.png") 110 140 90 140 fill / 23px 30px 19px 30px stretch; }
+.btn.primary { --press-dy: 5px; min-height: var(--size-touch-primary); padding: 0 var(--spacing-10) 12px; font-size: 30px; background: var(--color-primary); color: var(--color-primary-foreground); box-shadow: none; border-radius: var(--radius-full); border-image: url("../../assets/img/UI-06-kit/btn-primary.webp") 110 140 90 140 fill / 30px 38px 24px 38px stretch; }
+.btn.secondary { background: var(--color-secondary); color: var(--color-secondary-foreground); box-shadow: none; padding-bottom: 10px; border-radius: var(--radius-full); border-image: url("../../assets/img/UI-06-kit/btn-secondary.webp") 110 140 90 140 fill / 23px 30px 19px 30px stretch; }
 .btn.destructive { background: var(--color-destructive); color: var(--color-destructive-foreground); box-shadow: var(--shadow-card); }
 .btn:disabled, .btn[aria-disabled="true"] { background: var(--color-secondary); color: var(--color-secondary-foreground); box-shadow: var(--shadow-pressed); cursor: not-allowed; opacity: 0.7; border-image: none; }
 .btn small { font-family: var(--font-family-body); font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); line-height: 1.2; }
@@ -61,7 +61,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .banner .btn { margin-left: auto; min-height: 48px; font-size: var(--font-size-button); color: var(--color-foreground); padding-bottom: 8px; border-image-width: 20px 25px 16px 25px; }
 
 /* 스프링 제본 띠 — Sol UI-03 1983×227 투명 띠를 24px 높이로(고리 간격 ≈17px). 투명 PNG 라 CSS 대체층을 밑에 깔면 겹쳐 보여 Sol 층만 둔다(파일 없으면 빈 띠) */
-.coil { height: var(--size-book-coil); background: url("../../assets/img/UI-03-coil.png") 0 50% / auto 100% repeat-x; }
+.coil { height: var(--size-book-coil); background: url("../../assets/img/UI-03-coil.webp") 0 50% / auto 100% repeat-x; }
 
 /* ===== ① 그리기 차례 — 책 한 권이 화면 전부 =====
    한 화면 예산(세로 768×950): 패딩 24 + 상단바 56 + 12 + 책 테두리 8 + 스프링 24 + 8 + 안내 48 + 12 + 제시 100 + 12
@@ -103,7 +103,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 
 /* 필통: 64px 도구 2줄(세로). 간격 12 ≥ 8 */
 .side { display: flex; flex-direction: column; gap: var(--spacing-3); }
-.tray { display: flex; flex-direction: column; gap: var(--size-touch-gap); height: 164px; padding: var(--spacing-2); background: var(--color-tool-tray-surface); border: var(--border-width-default) solid var(--color-border); border-radius: var(--radius-md); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/tray.png") 90 80 100 80 fill / 12px 11px 13px 11px stretch; }
+.tray { display: flex; flex-direction: column; gap: var(--size-touch-gap); height: 164px; padding: var(--spacing-2); background: var(--color-tool-tray-surface); border: var(--border-width-default) solid var(--color-border); border-radius: var(--radius-md); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/tray.webp") 90 80 100 80 fill / 12px 11px 13px 11px stretch; }
 .row { display: flex; flex-wrap: wrap; gap: var(--size-touch-gap); justify-content: center; }
 .tool { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: var(--size-touch-tool); height: var(--size-touch-tool); border-radius: var(--radius-md); background: var(--color-tool-surface); color: var(--color-tool-foreground); border: var(--border-width-default) solid var(--color-border); box-shadow: var(--shadow-card); font-family: var(--font-family-display); font-size: var(--font-size-caption); line-height: 1; text-align: center; --press-dy: 3px; }
 .tool.wide { width: auto; flex-direction: row; gap: 6px; padding: 0 var(--spacing-3); }
@@ -112,7 +112,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .dot { border-radius: var(--radius-full); background: currentColor; }
 .swatch { width: var(--size-touch-tool); height: var(--size-touch-tool); border-radius: var(--radius-full); border: var(--border-width-default) solid var(--color-border); box-shadow: var(--shadow-card); --press-dy: 3px; }
 .swatch[aria-pressed="true"] { box-shadow: 0 0 0 4px var(--color-tool-surface), 0 0 0 8px var(--color-tool-swatch-ring); }
-.submit { --press-dy: 5px; display: flex; flex-wrap: wrap; align-items: center; align-content: center; justify-content: center; column-gap: var(--spacing-3); row-gap: 0; height: var(--size-touch-primary); width: 100%; padding: 0 var(--spacing-3) 12px; border-radius: var(--radius-full); background: var(--color-primary); color: var(--color-primary-foreground); font-family: var(--font-family-display); font-size: 30px; line-height: 1.1; border: var(--border-width-default) solid var(--color-border); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/btn-primary.png") 110 140 90 140 fill / 30px 38px 24px 38px stretch; }
+.submit { --press-dy: 5px; display: flex; flex-wrap: wrap; align-items: center; align-content: center; justify-content: center; column-gap: var(--spacing-3); row-gap: 0; height: var(--size-touch-primary); width: 100%; padding: 0 var(--spacing-3) 12px; border-radius: var(--radius-full); background: var(--color-primary); color: var(--color-primary-foreground); font-family: var(--font-family-display); font-size: 30px; line-height: 1.1; border: var(--border-width-default) solid var(--color-border); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/btn-primary.webp") 110 140 90 140 fill / 30px 38px 24px 38px stretch; }
 .submit > * { flex: none; white-space: nowrap; }
 .submit:disabled { background: var(--color-secondary); color: var(--color-secondary-foreground); box-shadow: var(--shadow-pressed); cursor: default; border-image: none; }
 .submit small { font-family: var(--font-family-body); font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); line-height: 1.2; }
@@ -121,7 +121,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
   /* 고정합 248 → 캔버스 589×442 (세로 넘침의 원인은 캔버스가 아니라 오른쪽 열 — 위 주석) */
   .screen-draw { --draw-fixed: calc(24px + var(--size-touch-min) + 12px + 8px + 16px + 100px + 12px + 6px + 14px); }
   .book { display: grid; grid-template-columns: var(--size-book-coil) minmax(0, 1fr) 312px; grid-template-rows: auto 1fr; grid-template-areas: "coil prompt side" "coil canvas side"; gap: var(--spacing-3); padding: var(--spacing-2) var(--spacing-4) var(--spacing-2) 0; border-radius: 0 20px 20px 0; }
-  .book > .coil { grid-area: coil; margin: calc(-1 * var(--spacing-2)) 0; height: auto; width: var(--size-book-coil); background: url("../../assets/img/UI-03-coil-v.png") 50% 0 / 100% auto repeat-y; }
+  .book > .coil { grid-area: coil; margin: calc(-1 * var(--spacing-2)) 0; height: auto; width: var(--size-book-coil); background: url("../../assets/img/UI-03-coil-v.webp") 50% 0 / 100% auto repeat-y; }
   .book > .notice { display: none; }
   .head { grid-area: prompt; grid-template-columns: 1fr; }
   .head .timer { display: none; }
@@ -184,7 +184,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .pagetabs .ic { width: 18px; height: 18px; }
 .guess { flex: 1; display: grid; place-items: center; text-align: center; font-family: var(--font-family-display); font-size: var(--font-size-prompt); color: var(--color-chain-guess-foreground); padding: var(--spacing-4); min-height: 200px; }
 .guess q { quotes: "“" "”"; }
-.meaning { background: var(--color-meaning-card-surface); color: var(--color-meaning-foreground); border: var(--border-width-strong) solid var(--color-meaning-card-border); border-radius: var(--radius-xl); padding: var(--spacing-6); position: relative; display: flex; flex-direction: column; gap: var(--spacing-4); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/tile.png") 90 fill / 32px stretch; }
+.meaning { background: var(--color-meaning-card-surface); color: var(--color-meaning-foreground); border: var(--border-width-strong) solid var(--color-meaning-card-border); border-radius: var(--radius-xl); padding: var(--spacing-6); position: relative; display: flex; flex-direction: column; gap: var(--spacing-4); box-shadow: none; border-image: url("../../assets/img/UI-06-kit/tile.webp") 90 fill / 32px stretch; }
 .meaning .seal { position: absolute; top: -20px; right: var(--spacing-6); background: var(--color-accent); color: var(--color-accent-foreground); font-family: var(--font-family-display); font-size: 26px; padding: 4px 18px; border-radius: var(--radius-full); border: var(--border-width-default) solid var(--color-border); box-shadow: var(--shadow-pressed); transform: rotate(-4deg); }
 .meaning .kind, .meaning dt { font-family: var(--font-family-display); font-size: 22px; color: var(--color-meaning-label); line-height: 1.1; }
 .meaning .word { font-family: var(--font-family-display); font-size: var(--font-size-meaning-title); color: var(--color-meaning-title); line-height: var(--font-lineHeight-tight); }
@@ -234,11 +234,12 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .code { font-family: var(--font-family-display); font-size: var(--font-size-roomcode); line-height: 1; letter-spacing: 0.18em; padding: var(--spacing-3) var(--spacing-6) var(--spacing-3) calc(var(--spacing-6) + 0.18em); background: var(--color-roomcode-surface); color: var(--color-roomcode-foreground); border-radius: var(--radius-md); border: var(--border-width-default) solid var(--color-border); font-variant-numeric: tabular-nums; }
 .summary { display: flex; flex-wrap: wrap; gap: var(--spacing-2); justify-content: center; }
 /* 책 폭은 열 폭이 정하고 높이는 비율이 따른다: 행을 stretch 하지 않고(align-content: start) 열은 0 최소 */
-.desk { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-4); align-content: start; }
+/* 세로는 한 줄 6권(시작 버튼이 첫 화면 가까이 오게), 가로는 3권 2줄(아래 앱 셸 절). ul/li 라 목록 기본값을 지운다 */
+.desk { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--spacing-3); align-content: start; list-style: none; margin: 0; padding: 0; }
 /* 참가자 책 = Sol UI-02 표지 조각(≈338×480 투명, 왼쪽 스프링과 아래 흰 이름표 칸이 그림 안에 있음). 표지색은 그림이 정한다(토큰 cover.n 근사).
    이름표는 그림에 구워진 칸(가로 27~82%·세로 75~88%)을 덮는 코드 상자 — 조각마다 칸 위치가 조금 달라도 상자가 더 커서 가려진다. 방장 배지는 표지 오른쪽 위 */
-.bookcard { position: relative; min-width: 0; width: 100%; aspect-ratio: 338 / 480; background: url("../../assets/img/UI-02-book-cover/1.png") center / contain no-repeat; }
-.bookcard.c2 { background-image: url("../../assets/img/UI-02-book-cover/2.png"); } .bookcard.c3 { background-image: url("../../assets/img/UI-02-book-cover/3.png"); } .bookcard.c4 { background-image: url("../../assets/img/UI-02-book-cover/4.png"); } .bookcard.c5 { background-image: url("../../assets/img/UI-02-book-cover/5.png"); } .bookcard.c6 { background-image: url("../../assets/img/UI-02-book-cover/6.png"); }
+.bookcard { position: relative; min-width: 0; width: 100%; aspect-ratio: 338 / 480; background: url("../../assets/img/UI-02-book-cover/1.webp") center / contain no-repeat; }
+.bookcard.c2 { background-image: url("../../assets/img/UI-02-book-cover/2.webp"); } .bookcard.c3 { background-image: url("../../assets/img/UI-02-book-cover/3.webp"); } .bookcard.c4 { background-image: url("../../assets/img/UI-02-book-cover/4.webp"); } .bookcard.c5 { background-image: url("../../assets/img/UI-02-book-cover/5.webp"); } .bookcard.c6 { background-image: url("../../assets/img/UI-02-book-cover/6.webp"); }
 .bookcard.empty { background: transparent; border: var(--border-width-default) dashed var(--color-border); border-radius: 6px 20px 20px 6px; color: var(--color-muted-foreground); font-family: var(--font-family-display); font-size: 22px; display: flex; justify-content: center; align-items: center; }
 .nametag { position: absolute; left: 12%; width: 80%; top: 73%; height: 15%; display: flex; align-items: center; justify-content: center; gap: var(--spacing-2); padding: 0 var(--spacing-2); background: var(--color-book-nametag); border: 2px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-family-display); font-size: 22px; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bookcard .host { position: absolute; right: 7%; top: 6%; font-family: var(--font-family-body); font-size: var(--font-size-caption); font-weight: var(--font-weight-bold); background: var(--color-accent); color: var(--color-accent-foreground); padding: 2px 8px; border-radius: var(--radius-full); border: 2px solid var(--color-border); }
@@ -247,7 +248,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .startbar .reason { font-size: var(--font-size-body); color: var(--color-muted-foreground); text-align: center; }
 .lobby-empty { display: flex; align-items: center; gap: var(--spacing-4); padding: var(--spacing-4) var(--spacing-5); font-family: var(--font-family-display); font-size: 24px; }
 .lobby-empty img { height: 96px; width: auto; aspect-ratio: 506 / 529; object-fit: contain; } /* KA-03 wait 506×529 투명 */
-@media (orientation: landscape) and (min-width: 900px) { .lobby { grid-template-columns: 360px minmax(0, 1fr); grid-template-areas: "code desk" "start desk"; } .lobby .code-card { grid-area: code; } .lobby .desk { grid-area: desk; align-self: start; } .lobby .startbar { grid-area: start; } }
+@media (orientation: landscape) and (min-width: 900px) { .lobby { grid-template-columns: 360px minmax(0, 1fr); grid-template-areas: "code desk" "start desk"; } .lobby .code-card { grid-area: code; } .lobby .startbar { grid-area: start; } }
 
 /* ===== ⑥ 방 만들기 — 보이는 라벨, 필드 아래 도움말, 토글은 aria-pressed ===== */
 .form { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); flex: 1; align-content: start; }
@@ -273,6 +274,7 @@ legend { font-family: var(--font-family-display); font-size: 24px; padding: 0 va
 
 /* ===== 앱 셸(T05) — 시안에 없는 홈·연결 중·토스트 등. 토큰 변수만 ===== */
 .topbar .title { margin: 0; }
+.chip.mute { min-height: var(--size-touch-min); } /* .chip.soft 는 44px — 버튼이라 터치 최소 56 */
 a.btn { text-decoration: none; }
 .btn.grow { margin-left: auto; flex: 1; max-width: 480px; }
 .banner.warn { background: var(--color-chain-fallback-surface); color: var(--color-chain-fallback-foreground); }
@@ -296,10 +298,7 @@ a.btn { text-decoration: none; }
 .field .preview { margin: 0; font-size: var(--font-size-caption); color: var(--color-foreground); }
 
 /* 대기실: 시안의 div 책상을 ul/li 로(목록 의미). 끊긴 사람은 흐리게 + 빨간 점 + 숨은 글자(색만으로 전하지 않음) */
-.desk { list-style: none; margin: 0; padding: 0; }
-/* 세로는 한 줄 6권(시작 버튼이 첫 화면 가까이 오게), 가로는 3권 2줄. 시안의 align-self:start 는 flex 열 안에서 폭을 줄여 버려 stretch 로 되돌린다 */
-.lobby .desk-wrap .desk { align-self: stretch; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--spacing-3); }
-@media (orientation: landscape) and (min-width: 900px) { .lobby .desk-wrap .desk { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 480px; } }
+@media (orientation: landscape) and (min-width: 900px) { .desk { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 480px; } }
 .desk-wrap { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
 .bookcard.off { opacity: 0.5; }
 .code-card .code-art { width: 100%; max-width: 300px; height: auto; aspect-ratio: 1724 / 800; object-fit: contain; }

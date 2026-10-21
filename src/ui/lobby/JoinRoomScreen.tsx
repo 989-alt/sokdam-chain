@@ -73,7 +73,7 @@ export function JoinRoomScreen({ onJoin, onBack }: Props) {
           </div>
         )}
         <div class="form-foot">
-          <button type="button" class="btn secondary press" onClick={onBack}>
+          <button type="button" class="btn secondary press" disabled={busy} onClick={onBack}>
             <Icon name="chevron-left" />
             뒤로
           </button>

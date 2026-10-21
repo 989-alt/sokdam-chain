@@ -33,9 +33,14 @@ export function useRoute(lock: Route | null, onHash?: (hash: string) => void): R
       hashRef.current?.(location.hash);
       setRoute(parseRoute(location.hash));
     };
+    // 해시 없는 항목('/')으로 되돌아갈 때는 hashchange 가 안 올 수 있어 popstate 도 듣는다(둘 다 와도 무해).
     addEventListener('hashchange', on);
+    addEventListener('popstate', on);
     on(); // 첫 렌더와 리스너 등록 사이에 바뀐 해시를 놓치지 않게
-    return () => removeEventListener('hashchange', on);
+    return () => {
+      removeEventListener('hashchange', on);
+      removeEventListener('popstate', on);
+    };
   }, []);
   return route;
 }

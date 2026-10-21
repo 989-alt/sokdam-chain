@@ -10,7 +10,8 @@ import { SoundProvider } from '../ui/shared/sound';
 import { TeacherListScreen } from '../ui/teacher/TeacherListScreen';
 import { createRoom, enterRoom, isRoom, resume, savedSession } from './connect';
 import { RoomRoute, type Room } from './room';
-import { go, useRoute } from './router';
+import { go, parseRoute, useRoute } from './router';
+import { useWakeLock } from '../ui/shared/wake-lock';
 import { PassSlot } from './slots';
 import { readTeacherHash, TeacherContext, type TeacherList } from './teacher-state';
 
@@ -27,7 +28,13 @@ export function App() {
       setToast(t.error);
     }
   };
-  const route = useRoute(room ? 'room' : null, readHash);
+  // 돌려쓰기 판은 메모리뿐이라 뒤로가기 한 번에 사라지지 않게 잠근다. 나갈 땐 exiting 으로 풀고 이동.
+  const [exiting, setExiting] = useState(false);
+  const route = useRoute(room ? 'room' : !exiting && parseRoute(location.hash) === 'pass' ? 'pass' : null, readHash);
+  useEffect(() => {
+    if (route !== 'pass') setExiting(false);
+  }, [route]);
+  useWakeLock(!room && route === 'pass');
   useEffect(() => readHash(location.hash), []);
   useEffect(() => {
     if (!toast) return;
@@ -69,6 +76,11 @@ export function App() {
         onCreate={async (name, settings) => {
           const r = await createRoom(name, settings, teacher);
           if (!isRoom(r)) return false;
+          // 연결 중에 다른 화면으로 갔으면(브라우저 뒤로가기) 방을 닫고 따라가지 않는다.
+          if (parseRoute(location.hash) !== 'create') {
+            r.host?.leave();
+            return true;
+          }
           enter(r);
           return true;
         }}
@@ -81,13 +93,25 @@ export function App() {
         onJoin={async (code, name) => {
           const r = await enterRoom(code, name);
           if (!isRoom(r)) return joinFailMessage(r.reason);
+          if (parseRoute(location.hash) !== 'join') {
+            r.client.leave();
+            return null;
+          }
           enter(r);
           return null;
         }}
       />
     );
   else if (route === 'teacher') screen = <TeacherListScreen onBack={() => go('home')} />;
-  else if (route === 'pass') screen = <PassSlot onExit={() => go('home')} />;
+  else if (route === 'pass')
+    screen = (
+      <PassSlot
+        onExit={() => {
+          setExiting(true);
+          setTimeout(() => go('home')); // 잠금이 풀린 렌더 뒤
+        }}
+      />
+    );
   else screen = <HomeScreen teacherCount={teacher?.items.length ?? null} toast={toast} canResume={!!savedSession()} onResume={doResume} />;
 
   return (

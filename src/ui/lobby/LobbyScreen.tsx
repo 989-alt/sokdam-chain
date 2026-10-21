@@ -1,7 +1,7 @@
 // 화면 4 대기실. 시안 3-cartoon-book ⑤: 방 코드 카드 + 책상 위 스케치북 표지 6자리 + 시작(방장만).
 import { useState } from 'preact/hooks';
-import title from '../../../assets/img/KA-02-title.png';
-import wait from '../../../assets/img/KA-03-mascot-faces/wait.png';
+import title from '../../../assets/img/KA-02-title.webp';
+import wait from '../../../assets/img/KA-03-mascot-faces/wait.webp';
 import type { LobbyPlayer, Settings } from '../../net/protocol';
 import { MAX_PLAYERS, MIN_PLAYERS } from '../../net/protocol';
 import { copyText } from '../../teacher/list';
@@ -21,12 +21,14 @@ type Props = {
   onLeave: () => void;
 };
 
-/** 시작 버튼 아래 이유 문장. */
-export function startReason(players: LobbyPlayer[]): string {
+/** 시작 버튼 아래 이유 문장. canStart 는 HostView 값(lobby 이고 4~6명) — 4명 이상인데 false 면 이미 시작 중이다. */
+export function startReason(players: LobbyPlayer[], canStart: boolean): string {
   const n = players.length;
   const off = players.filter((p) => !p.connected).map((p) => p.name);
   const offNote = off.length ? ` · 연결 끊김: ${off.join(', ')}` : '';
   if (n < MIN_PLAYERS) return `${MIN_PLAYERS}명부터 시작할 수 있어요 · 지금 ${n}명${offNote}`;
+  if (n > MAX_PLAYERS) return `최대 ${MAX_PLAYERS}명까지 할 수 있어요 · 지금 ${n}명${offNote}`;
+  if (!canStart) return '게임을 시작하는 중이에요';
   return `모두 모였으면 시작해요 · 최대 ${MAX_PLAYERS}명${offNote}`;
 }
 
@@ -116,7 +118,7 @@ export function LobbyScreen({ code, players, mySlot, settings, isHost, canStart,
                 시작하기
               </button>
               <div class="reason" id="start-reason">
-                {startError ?? startReason(players)}
+                {startError ?? startReason(players, canStart)}
               </div>
             </>
           ) : (

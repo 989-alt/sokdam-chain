@@ -36,13 +36,24 @@ const START_FAIL: Record<string, string> = {
   'not-enough-words': '문제가 모자라요. 다른 수준을 골라 주세요',
 };
 
+function Connecting() {
+  return (
+    <section class="screen" aria-label="연결하는 중">
+      <div class="tile end" role="status" aria-busy="true">
+        <span class="spin big" aria-hidden="true"></span>
+        <p class="h">방에 연결하는 중이에요</p>
+      </div>
+    </section>
+  );
+}
+
 export function RoomRoute({ room, onHome, onResume }: { room: Room; onHome: () => void; onResume: () => Promise<string | null> }) {
   const view = useSubscribe<ClientView>(room.client);
   const hostView = useSubscribe<HostView>(room.host);
   const [left, setLeft] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   useWakeLock(!!view && view.phase !== 'ended');
-  if (!view) return null;
+  if (!view) return <Connecting />;
 
   const leave = () => {
     setLeft(true);
@@ -57,15 +68,7 @@ export function RoomRoute({ room, onHome, onResume }: { room: Room; onHome: () =
   }
 
   // 이어하기는 첫 sync 까지 connecting — 대기실이 아니라 연결 중 표시.
-  if (view.phase === 'connecting')
-    return (
-      <section class="screen" aria-label="연결하는 중">
-        <div class="tile end" role="status" aria-busy="true">
-          <span class="spin big" aria-hidden="true"></span>
-          <p class="h">방에 연결하는 중이에요</p>
-        </div>
-      </section>
-    );
+  if (view.phase === 'connecting') return <Connecting />;
 
   if (view.phase === 'lobby') {
     return (
