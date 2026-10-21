@@ -70,6 +70,12 @@ async function raw(net: Network, code: string) {
   return { ep, conn, got, send: (m: object) => conn.send({ v: V, ...m }), closed: () => closed };
 }
 
+/** 탭 닫힘 흉내 — 스스로 다시 붙지 못하게 하고 연결을 끊는다. */
+function closeTab(net: Loopback, c: ClientSession) {
+  (c as any).o.redial = undefined;
+  net.cut((c as any).conn.local);
+}
+
 /** 같은 pid 로 다시 붙는 학생(이어하기). */
 async function reconnect(net: Network, code: string, pid: string) {
   const ep = await net.open(randomId());
@@ -189,7 +195,7 @@ describe('재접속', () => {
     await flush();
     const c = all[2]!;
     const before = c.view.cell!;
-    net.cut((c as any).conn.local);
+    closeTab(net, c);
     await flush();
     expect(host.view.players[2]!.connected).toBe(false);
     const { c: back, r } = await reconnect(net, host.code, c.pid);
@@ -224,7 +230,8 @@ describe('재접속', () => {
     const { c: fresh, r } = await reconnect(net, host.code, old.pid);
     expect(r.ok).toBe(true);
     await flush();
-    expect(old.view.ended).toBe('lost'); // 옛 연결은 닫혔다
+    expect(old.view.phase).toBe('ended'); // 옛 연결은 replaced 를 받고 닫혔다 — 다시 붙어 자리를 뺏지 않는다
+    expect(old.view.reconnecting).toBe(false);
     expect(host.view.players).toHaveLength(3);
     expect(host.view.players[1]!.connected).toBe(true);
     await flush(7000);
@@ -249,27 +256,145 @@ describe('끊김 감지', () => {
     host.leave();
   });
 
-  it('학생: ping 10초 무수신이면 onHostLost', async () => {
+  it('학생: ping 10초 무수신 → 다시 붙기, 방장이 계속 말없으면(멈춘 탭) 시도 3번 뒤 lost', async () => {
     const { net, host, all } = await room(2);
     const lost = vi.fn();
     all[1]!.onHostLost = lost;
     net.mute(hostPeerId(host.code), true);
     await flush(9000);
-    expect(lost).not.toHaveBeenCalled();
+    expect(all[1]!.view.reconnecting).toBe(false);
     await flush(2500);
+    expect(lost).not.toHaveBeenCalled(); // 2초 확인: 방장 peer 는 있다 → 10초 규칙. 붙기는 되지만 답이 없다
+    await flush(40000);
     expect(lost).toHaveBeenCalledOnce();
     expect(all[1]!.view.ended).toBe('lost');
     host.leave();
   });
 
-  it('학생: 연결 close 면 즉시 onHostLost', async () => {
-    const { net, host, all } = await room(2);
+  it('학생: 연결만 끊기고 방장이 살아 있으면 스스로 다시 붙어 같은 자리로', async () => {
+    const { net, host, all } = await room(4);
+    host.start();
+    await flush();
+    const c = all[1]!;
+    const lost = vi.fn();
+    c.onHostLost = lost;
+    const cell = c.view.cell;
+    net.cut((c as any).conn.local);
+    await flush(20);
+    expect(lost).not.toHaveBeenCalled();
+    expect(c.view.ended).toBe(null);
+    expect(c.view.reconnecting).toBe(false);
+    expect(c.view.cell).toEqual(cell);
+    expect(host.view.players[1]!.connected).toBe(true);
+    await c.submitDrawing(png());
+    await flush(20);
+    expect(host.view.submitted).toBe(1);
+    host.leave();
+  });
+
+  it('PeerServer 처럼 없는 peer 답이 6초 걸려도 방장 증발 뒤 9.5초 안에 host-left', async () => {
+    for (const offset of [0, 300, 999]) {
+      const net = createLoopback({ unavailableMs: 6000 });
+      const { host, all } = await room(3, {}, undefined, net);
+      await flush(offset);
+      net.vanish(hostPeerId(host.code));
+      clearInterval((host as any).ping);
+      await flush(6900);
+      expect(all[1]!.view.phase).not.toBe('ended');
+      await flush(2600);
+      expect(all.slice(1).map((c) => c.view.ended)).toEqual(['host-left', 'host-left']);
+      vi.clearAllTimers();
+    }
+  });
+
+  it('방장이 말없이 사라지면(종료 이벤트 없음) 2초 침묵 뒤 확인해 host-left', async () => {
+    const { net, host, all } = await room(3);
     const lost = vi.fn();
     all[1]!.onHostLost = lost;
-    net.cut(hostPeerId(host.code));
-    await flush();
+    await flush(700); // ping 주기 어디서든
+    net.vanish(hostPeerId(host.code));
+    clearInterval((host as any).ping);
+    await flush(1000);
+    expect(all[1]!.view.phase).not.toBe('ended');
+    await flush(3200);
+    expect(all.slice(1).map((c) => c.view.ended)).toEqual(['host-left', 'host-left']);
     expect(lost).toHaveBeenCalledOnce();
-    host.leave();
+  });
+
+  it('내 망이 끊기면(시그널링 안 됨) 다시 붙기 실패 → lost 유지, 망이 돌아오면 그 전에 붙는다', async () => {
+    const net = createLoopback();
+    let down = false;
+    const mine: Network = { open: (id) => (down ? Promise.reject(new Error('network')) : net.open(id)) };
+    const r = await room(2, {}, undefined, net);
+    const jp = joinRoom({ network: mine, code: r.host.code, name: '와이파이' });
+    await flush();
+    const j = await jp;
+    if (!j.ok) throw new Error(j.reason);
+    const c = j.client;
+    down = true;
+    net.mute((c as any).conn.local, true);
+    await flush(11000);
+    expect(c.view.reconnecting).toBe(true);
+    await flush(1000);
+    down = false; // 두 번째 시도(3초 뒤) 전에 망 복귀
+    net.mute((c as any).conn.local, false);
+    await flush(3000);
+    expect(c.view.reconnecting).toBe(false);
+    expect(c.view.ended).toBe(null);
+    expect(r.host.view.players[2]!.connected).toBe(true);
+    down = true;
+    net.mute((c as any).conn.local, true);
+    await flush(11000 + 3000 * 3);
+    expect(c.view.ended).toBe('lost');
+    r.host.leave();
+  });
+
+  it('첫 연결이 열리기 전에 실패해도(connect-failed) 한 번 더 시도해 입장', async () => {
+    const net = createLoopback();
+    const r = await room(1, {}, undefined, net);
+    let n = 0;
+    const flaky: Network = {
+      open: async (id) => {
+        const ep = await net.open(id);
+        return { ...ep, id: ep.id, onConnection: ep.onConnection, destroy: ep.destroy, connect: (peer) => (n++ ? ep.connect(peer) : Promise.reject(new Error('connect-failed'))) };
+      },
+    };
+    const jp = joinRoom({ network: flaky, code: r.host.code, name: '두번' });
+    await flush(20);
+    expect((await jp).ok).toBe(true);
+    expect(n).toBe(2);
+    r.host.leave();
+  });
+
+  it('입장 중 채널이 한 번 끊겨도 join 을 다시 보내 그대로 입장', async () => {
+    const net = createLoopback();
+    const r = await room(1, {}, undefined, net);
+    let first = true;
+    const flaky: Network = {
+      open: async (id) => {
+        const ep = await net.open(id);
+        return {
+          ...ep,
+          id: ep.id,
+          onConnection: ep.onConnection,
+          destroy: ep.destroy,
+          connect: async (peer) => {
+            const c = await ep.connect(peer);
+            if (!first) return c;
+            first = false;
+            setTimeout(() => c.close(), 5); // 핸드셰이크 직후 닫힘, join 은 닿지 않음
+            return { ...c, peer: c.peer, close: () => c.close(), onData: (f) => c.onData(f), onClose: (f) => c.onClose(f), send: () => {} };
+          },
+        };
+      },
+    };
+    const jp = joinRoom({ network: flaky, code: r.host.code, name: '재시도' });
+    await flush(50);
+    const j = await jp;
+    expect(j.ok).toBe(true);
+    expect(r.host.view.players.map((p) => p.name)).toEqual(['방장', '재시도']);
+    expect(j.ok && j.client.view.phase).toBe('lobby');
+    r.host.leave();
   });
 });
 
@@ -330,7 +455,7 @@ describe('끊긴 학생 60초', () => {
   it('끊김 → 60초 뒤 답 없음', async () => {
     const { net, host, all } = await toGuessStep();
     await submitAll(all, [all[2]!]);
-    net.cut(local(all[2]!));
+    closeTab(net, all[2]!);
     await flush(59000);
     expect(host.view.step).toBe(1);
     await flush(1100);
@@ -343,7 +468,7 @@ describe('끊긴 학생 60초', () => {
     const { net, host, all } = await toGuessStep();
     await submitAll(all, [all[2]!]);
     const pid = all[2]!.pid;
-    net.cut(local(all[2]!));
+    closeTab(net, all[2]!);
     await flush(50000);
     const { c } = await reconnect(net, host.code, pid);
     await flush(20000);
@@ -358,7 +483,7 @@ describe('끊긴 학생 60초', () => {
     const { net, host, all } = await room(4, { drawSeconds: 30 });
     host.start();
     await flush();
-    net.cut(local(all[3]!));
+    closeTab(net, all[3]!);
     await submitAll(all, [all[3]!]);
     await flush(33100); // 그리기 기한+3초 → 1단계 시작
     expect(host.view.step).toBe(1);
@@ -506,7 +631,7 @@ describe('결과·투표·한 판 더', () => {
   it('끊긴 학생 투표는 60초 뒤 기권', async () => {
     const { net, host, all } = await playToReview({ review: 'timer', reviewSeconds: 3 });
     await flush(3000 * 24);
-    net.cut((all[3] as any).conn.local);
+    closeTab(net, all[3]!);
     for (const c of all.slice(0, 3)) c.vote(null, null);
     await flush(59000);
     expect(host.view.phase).toBe('vote');
@@ -518,7 +643,7 @@ describe('결과·투표·한 판 더', () => {
   it('한 판 더: 이전 판 그림·답 버림, 제시어 안 겹침, 끊긴 slot 유지', async () => {
     const { net, host, all } = await playToReview({ review: 'timer', reviewSeconds: 3 });
     await flush(3000 * 24);
-    net.cut((all[3] as any).conn.local);
+    closeTab(net, all[3]!);
     for (const c of all.slice(0, 3)) c.vote(null, null);
     await flush(61000);
     const oldWords = (host as any).game.chains.map((c: any) => c.word.id);

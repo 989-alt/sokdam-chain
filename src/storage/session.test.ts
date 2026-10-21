@@ -86,6 +86,7 @@ describe('세션 키 수명 — 학생만 저장, ended·leave 에 삭제', () =
 
   it('이어하기 — 끊긴 뒤 저장된 키로 같은 자리 복원', async () => {
     const { net, host, client } = await setup();
+    (client as any).o.redial = undefined; // 탭 닫힘 — 스스로 다시 붙지 않음
     net.cut((client as any).conn.local);
     await vi.advanceTimersByTimeAsync(5);
     expect(client.view.ended).toBe('lost');
@@ -103,6 +104,15 @@ describe('세션 키 수명 — 학생만 저장, ended·leave 에 삭제', () =
     const gone = resumeRoom({ network: net });
     await vi.advanceTimersByTimeAsync(5);
     expect(await gone).toEqual({ ok: false, reason: 'no-room' });
+    expect(mem.has(KEY)).toBe(false);
+  });
+
+  it('방장이 말없이 사라지면 다시 붙어 보고 host-left + 삭제', async () => {
+    const { net, host, client } = await setup();
+    net.vanish(`sokdam-${host.code}`);
+    clearInterval((host as any).ping);
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(client.view.ended).toBe('host-left');
     expect(mem.has(KEY)).toBe(false);
   });
 

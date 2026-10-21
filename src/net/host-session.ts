@@ -287,7 +287,11 @@ export class HostSession {
     p.lastSeenAt = this.now();
     // 옛 연결로 받던 그림은 버린다 — 학생이 sync 를 받고 다시 제출한다
     for (const id of [...this.incoming.keys()]) if (id.startsWith(`${p.pid}:`)) this.dropIncoming(id);
-    if (old && old !== conn) old.close();
+    if (old && old !== conn) {
+      // 옛 연결이 살아 있으면(탭 둘) 스스로 다시 붙어 자리를 뺏지 않게 알린다
+      old.send({ t: 'rejected', reason: 'replaced', v: V });
+      old.close();
+    }
     this.send(p, { t: 'joined', pid: p.pid, slot: p.slot, settings: this.o.settings });
     this.sendSync(p);
     if (p.connected) this.broadcastLobby();

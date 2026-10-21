@@ -16,14 +16,17 @@ function wrap(dc: DataConnection): Conn {
   };
   dc.on('data', (d) => dataCb(d));
   dc.on('close', fireClose);
-  dc.on('error', fireClose);
+  // 보내기 오류(message-too-big·not-open-yet)는 채널을 닫지 않는다. ICE 실패 등은 PeerJS 가 close 도 낸다.
+  dc.on('error', (e) => {
+    if (e.type !== 'message-too-big' && e.type !== 'not-open-yet') fireClose();
+  });
   return {
     peer: dc.peer,
     send: (msg) => {
       if (!closed && dc.open) void dc.send(msg);
     },
     close: () => {
-      dc.close();
+      dc.close({ flush: true }); // 닫기 직전 보낸 ended·rejected 를 버리지 않게
       fireClose();
     },
     onData: (cb) => void (dataCb = cb),

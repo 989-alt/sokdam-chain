@@ -2,7 +2,8 @@
 // 메시지는 JSON 으로 왕복시켜 serialization 'json' 과 같게 만든다. 순서는 지연이 같아 보존된다.
 import type { Conn, Endpoint, Network } from './transport';
 
-type Opts = { latencyMs?: number; dropRate?: number; rng?: () => number };
+/** unavailableMs: 없는 peer 에 connect 하면 이만큼 뒤 peer-unavailable(PeerServer 는 expire_timeout 5초 + 정리 주기 ≤1초 뒤 답한다). */
+type Opts = { latencyMs?: number; dropRate?: number; rng?: () => number; unavailableMs?: number };
 
 class LoopConn implements Conn {
   other!: LoopConn;
@@ -58,6 +59,8 @@ export type Loopback = Network & {
   cut(id: string): void;
   /** id 가 보내고 받는 메시지를 조용히 버린다(close 없음) — 화면 꺼짐·와이파이 정지 흉내. */
   mute(id: string, on: boolean): void;
+  /** id 가 말없이 사라진다 — 시그널링 등록은 없어지고 열린 연결은 close 없이 침묵(컨텍스트 강제 종료 흉내). */
+  vanish(id: string): void;
 };
 
 export function createLoopback(opts: Opts = {}): Loopback {
@@ -83,7 +86,7 @@ export function createLoopback(opts: Opts = {}): Loopback {
           new Promise((resolve, reject) =>
             setTimeout(() => {
               const remote = eps.get(peerId);
-              if (!remote || eps.get(id) !== me) return reject(new Error('peer-unavailable'));
+              if (!remote || eps.get(id) !== me) return void setTimeout(() => reject(new Error('peer-unavailable')), opts.unavailableMs ?? 0);
               const a = new LoopConn(peerId, id, net);
               const b = new LoopConn(id, peerId, net);
               a.other = b;
@@ -108,6 +111,10 @@ export function createLoopback(opts: Opts = {}): Loopback {
     mute(id, on) {
       if (on) mutedIds.add(id);
       else mutedIds.delete(id);
+    },
+    vanish(id) {
+      mutedIds.add(id);
+      eps.delete(id);
     },
   };
 }
