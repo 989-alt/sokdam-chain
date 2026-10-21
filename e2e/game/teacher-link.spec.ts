@@ -10,7 +10,7 @@ const ITEMS = [
   { t: '티끌 모아 태산', m: '작은 것도 모이면 큰 것이 된다', e: '용돈을 조금씩 모아 자전거를 샀다.' },
 ];
 
-test('교사 목록(이 목록만) 링크 → 새 기기 홈 → 수준 선택 없음 → 제시어가 교사 항목', async ({ browser }) => {
+test('교사 목록(이 목록만) 링크 → 새 기기 홈 → 수준 선택 없음 → 제시어가 교사 항목', async ({ browser, baseURL }) => {
   test.setTimeout(120_000);
   const teacher = await device(browser);
   await teacher.goto('/#/teacher');
@@ -20,7 +20,7 @@ test('교사 목록(이 목록만) 링크 → 새 기기 홈 → 수준 선택 �
   const link = teacher.locator('#teacher-link');
   await expect(link).toHaveValue(/#l=/);
   const url = await link.inputValue();
-  expect(url).toMatch(/^http:\/\/127\.0\.0\.1:5173\/#l=/);
+  expect(url.startsWith(new URL('/#l=', baseURL).href)).toBe(true);
   await teacher.context().close();
 
   const host = await device(browser);

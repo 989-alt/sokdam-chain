@@ -1,6 +1,6 @@
 // 돌려쓰기: 기기(컨텍스트) 하나, 4명·스케치북 2권 완주. 가림 화면엔 앞사람 그림·답이 DOM 에 없다.
 import { expect, test } from '@playwright/test';
-import { answerOf, device, draw, guess, html, NAMES, stepCount } from '../helpers/game';
+import { answerOf, device, draw, guess, html, NAMES, promptText, stepCount } from '../helpers/game';
 
 test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결과 12장 체인마다 카드, 투표 → 결과', async ({ browser }) => {
   test.setTimeout(120_000);
@@ -20,13 +20,14 @@ test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결�
     await btn.click();
   };
   const answers: string[] = [];
+  const words: string[] = []; // 각 권 0단계 제시어(A 원문)
   for (let t = 0; t < steps * 2; t++) {
     await expect(cover).toBeVisible();
     // 가림 화면: 앞 화면은 언마운트 — 캔버스·받은 그림·앞사람 답이 DOM 에 없다
     await expect(page.locator('canvas')).toHaveCount(0);
     await expect(page.locator('img[src^="blob:"]')).toHaveCount(0);
     const dom = await html(page);
-    for (const a of answers) expect(dom).not.toContain(a);
+    for (const a of [...answers, ...words]) expect(dom).not.toContain(a);
     const who = (await cover.locator('h1.h').textContent())!.split(' 차례예요')[0]!;
     await ready();
     const step = t % steps;
@@ -34,8 +35,12 @@ test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결�
       const a = answerOf(who, t);
       await guess(page, a);
       answers.push(a);
-    } else await draw(page);
+    } else {
+      if (step === 0) words.push((await promptText(page))!);
+      await draw(page);
+    }
   }
+  expect(words).toHaveLength(2);
 
   // 결과 보기: 2권 × (4 + 2) = 12장, 권마다 prompt → 그림 → 답 → 그림 → 답 → 카드
   await expect(page.locator('.screen-review')).toBeVisible();

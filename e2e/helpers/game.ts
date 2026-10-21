@@ -5,12 +5,19 @@ import { readFileSync } from 'node:fs';
 
 export type Word = { id: string; text: string; meaning: string; example: string; level?: string; type?: string };
 export const WORDS: Word[] = JSON.parse(readFileSync(new URL('../../src/data/words.json', import.meta.url), 'utf8'));
+// 화면 글로 제시어를 찾으므로(wordByText·wordByMeaning) text·meaning 이 겹치면 판정이 틀린다 — 시작할 때 막는다.
+for (const k of ['text', 'meaning'] as const)
+  if (new Set(WORDS.map((w) => w[k])).size !== WORDS.length) throw new Error(`words.json ${k} 중복 — e2e 제시어 판정 불가`);
 // 이름에 '그림'·'답'·'책' 같은 화면 문구를 넣지 않는다(장 머리 문구로 장 종류를 가린다).
 export const NAMES = ['서연', '민재', '지우', '하준', '도윤', '수아', '예준'];
 
 export const stepCount = (n: number) => (n % 2 ? n - 1 : n);
 
-/** 학생이 데이터 채널로 보낸 메시지 수를 t 별로 센다(제출 연타 검사). */
+/**
+ * 학생이 데이터 채널로 보낸 메시지 수를 t 별로 센다(제출 연타 검사).
+ * 의존: PeerJS serialization 'json'(peer-transport.ts)이 메시지를 JSON 문자열의 UTF-8 바이트로 한 번에 send 하고 "t" 키가 맨 앞이라는 것.
+ * 직렬화가 바뀌면(binary·청크) 계수가 0 이 되어 연타 테스트가 실패한다 — 그때 이 스파이를 고친다.
+ */
 const SPY = () => {
   const w = window as unknown as { __sent: Record<string, number> };
   w.__sent = {};
@@ -178,7 +185,8 @@ async function readPage(p: Page): Promise<ReviewRec> {
     };
   if (await spread.locator('.pic').count()) return { sig, owner, kind: 'draw', picture: (await spread.locator('.pic img.drawing').count()) > 0 };
   if (await spread.locator('.prompt-page').count()) return { sig, owner, kind: 'prompt' };
-  return { sig, owner, kind: 'guess' };
+  if (await spread.locator('article.page .guess').count()) return { sig, owner, kind: 'guess' };
+  throw new Error(`결과 장 종류를 알 수 없음: ${sig}`);
 }
 
 /**

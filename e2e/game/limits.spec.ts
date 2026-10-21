@@ -12,7 +12,9 @@ test('3명 — 시작 버튼 비활성 + 4명부터 시작할 수 있어요', as
   await expect(h.locator('#start-reason')).toContainText('4명부터 시작할 수 있어요');
   await startBtn.click({ force: true }); // aria-disabled 라 실행 가능 검사를 건너뛰고 탭한다
   await expect(h.locator('.screen-lobby')).toBeVisible(); // 눌러도 대기실 그대로
-  for (const p of players) await expect(p.locator('.screen-draw')).toHaveCount(0);
+  // 누른 뒤 약 1초 동안 누구도 그리기 화면으로 가지 않는다(짧은 표본 반복 — 부정 판정이라 한 번 보기로는 부족)
+  for (const end = Date.now() + 1_000; Date.now() < end; await h.waitForTimeout(100))
+    for (const p of players) expect(await p.locator('.screen-draw').count()).toBe(0);
   await closeAll(players);
 });
 
