@@ -146,7 +146,7 @@ export class ClientSession {
   /** 다시 붙기 시도 수 — 방장 메시지를 하나라도 받으면 0. 붙어도 방장이 말이 없으면(멈춘 탭) 계속 센다. */
   private tries = 0;
   /** 다시 붙는 중에 한 제출 — 재합류 sync 가 같은 칸을 미제출로 주면 그때 보낸다. */
-  private queued: { chainIdx: number; step: number; run: () => void } | null = null;
+  private queued: { chainIdx: number; step: number; deadlineAt: number | null; run: () => void } | null = null;
   private probedFor = -1; // 이 lastHeard 에 대해 이미 물어봤으면 다시 안 묻는다
   /** 마지막으로 방장 소식을 들은 뒤 unreachable 횟수(확인·다시 붙기 합산). */
   private unreachable = 0;
@@ -243,7 +243,7 @@ export class ClientSession {
   /** 연결이 닫혀 있거나 재합류 sync 전이면 제출을 미룬다(닫힌 채널로 보내 말없이 잃지 않게). */
   private hold(t: Turn, run: () => void): boolean {
     if (!this.redialing && !this.rejoining) return false;
-    this.queued = { chainIdx: t.chainIdx, step: t.step, run };
+    this.queued = { chainIdx: t.chainIdx, step: t.step, deadlineAt: t.deadlineAt, run };
     return true;
   }
 
@@ -335,14 +335,16 @@ export class ClientSession {
 
   private applySync(s: SyncState): void {
     const { slot, settings, players, submitted, waiting, pages, page, candidates, voted, result, phase } = s;
-    // 같은 칸이면 옛 cell 객체를 그대로 둔다 — 화면이 다시 마운트되지 않아 그리던 그림이 남는다
+    // 같은 칸이면 옛 cell 객체를 그대로 둔다 — 화면이 다시 마운트되지 않아 그리던 그림이 남는다.
+    // 단 보낸 제출을 방장이 못 받았으면(submitted true→false) 다시 마운트해 화면이 다시 제출할 수 있게 한다.
     const cur = this.view.cell;
-    const same = !!cur && !!s.cell && cur.chainIdx === s.cell.chainIdx && cur.step === s.cell.step && cur.deadlineAt === s.cell.deadlineAt;
+    const lostSubmit = this.view.submitted && !submitted;
+    const same = !lostSubmit && !!cur && !!s.cell && cur.chainIdx === s.cell.chainIdx && cur.step === s.cell.step && cur.deadlineAt === s.cell.deadlineAt;
     const cell = same ? cur : s.cell;
     this.set({ phase, slot, settings, players, cell, submitted, waiting, pages, page, candidates, voted, result, submitError: null });
     const q = this.queued;
     this.queued = null;
-    if (q && cell && phase === 'play' && !submitted && q.chainIdx === cell.chainIdx && q.step === cell.step) q.run();
+    if (q && cell && phase === 'play' && !submitted && q.chainIdx === cell.chainIdx && q.step === cell.step && q.deadlineAt === cell.deadlineAt) q.run();
     this.armAuto();
   }
 

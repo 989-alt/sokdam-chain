@@ -313,6 +313,30 @@ describe('끊김 감지', () => {
     host.leave();
   });
 
+  it('끊김을 알기 전 죽은 채널로 보낸 답은 재합류 sync 뒤 칸이 다시 마운트돼 다시 낼 수 있고 판이 이어진다', async () => {
+    const { net, host, all } = await room(4);
+    host.start();
+    await flush();
+    await submitAll(all); // 답 쓰기 단계로
+    expect(host.view.step).toBe(1);
+    const c = all[1]!;
+    const local = (c as any).conn.local;
+    net.mute(local, true); // 채널은 열린 채 말이 사라짐(아직 끊김 모름)
+    c.submitGuess('사라진 답');
+    expect(c.view.submitted).toBe(true);
+    const cell = c.view.cell;
+    net.mute(local, false);
+    net.cut(local);
+    await flush(20);
+    expect(c.view.reconnecting).toBe(false);
+    expect(c.view.submitted).toBe(false);
+    expect(c.view.cell).not.toBe(cell); // 새 객체 → 화면 다시 마운트(sent·busy 초기화)
+    expect(c.view.cell).toEqual(cell);
+    await submitAll(all);
+    expect(host.view.step).toBe(2);
+    host.leave();
+  });
+
   it('방장 망 끊김·잠듦(등록은 남고 응답 없음) → 확인(6초)·다시 붙기(15초) 두 번 unreachable 이면 24~28초에 host-left', async () => {
     for (const offset of [0, 500, 999]) {
       const { net, host, all } = await room(3);
