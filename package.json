@@ -1,0 +1,30 @@
+{
+  "name": "sokdam-chain",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "peer-server": "node scripts/peer-server.mjs"
+  },
+  "dependencies": {
+    "fflate": "0.8.3",
+    "peerjs": "1.5.5",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@preact/preset-vite": "2.10.6",
+    "peer": "1.0.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}
