@@ -1,0 +1,24 @@
+/* T06 결과 보기 — 시안 ③ 부품(app.css)에 한 번에 한 쪽, 화면 높이 안 배치만 더한다. 값은 토큰. */
+.play-review { height: 100vh; height: 100dvh; min-height: 0; }
+.play-review .review-head { flex-wrap: nowrap; }
+.play-review .review-head .title { flex: none; }
+.play-review .review-head .progress { margin-left: auto; white-space: nowrap; }
+.play-review .review-head .bar { width: clamp(80px, 12vw, 160px); }
+/* 제품은 한 번에 한 쪽(시안의 두 장 나란히는 설명용) — 가로에서도 한 열 */
+.play-review .spread { grid-template-columns: minmax(0, 1fr) !important; min-height: 0; }
+.play-review .spread > * { min-height: 0; }
+.play-review .meaning { justify-content: center; margin-top: var(--spacing-5); }
+.play-review .meaning.turn-out { animation: turn-out calc(var(--motion-duration-page-turn) / 2) var(--motion-easing-in) forwards; transform-origin: left center; }
+.play-review .meaning.turn-in { animation: turn-in calc(var(--motion-duration-page-turn) / 2) var(--motion-easing-out) both; transform-origin: left center; }
+.play-review .pic { flex: 1 1 0; min-height: 0; position: relative; }
+.play-review .pic > .drawing, .play-review .pic > .missing { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; object-fit: contain; }
+.play-review .pic > .missing { grid-template-rows: minmax(0, 1fr) auto; }
+.play-review .pic > .missing img { height: 100%; width: auto; max-width: 100%; min-height: 0; }
+.play-review .guess .none { color: var(--color-muted-foreground); }
+.play-review .prompt-page { color: var(--color-foreground); }
+.play-review .pagetabs span { min-height: 36px; }
+/* 자동 넘김 진행 바: 장마다 key 로 다시 시작(reduce 면 멈춘 채 가득) */
+.auto-bar { flex: none; }
+.auto-bar i { width: 100%; transform-origin: left center; animation: auto-fill linear both; }
+@keyframes auto-fill { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .auto-bar i { animation: none; } }

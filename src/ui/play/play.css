@@ -1,0 +1,48 @@
+/* T06 플레이 화면 — 시안 3-cartoon-book ①② 부품(app.css)을 쓰고, 여기엔 T04 DrawingCanvas 를 시안 자리에 끼우는 배치만 둔다. 값은 토큰. */
+
+/* ① 그리기: 화면 높이에 고정, 캔버스는 남는 칸(dc-stage)에서 4:3 레터박스(DrawingCanvas 가 직접 맞춘다).
+   세로 768×950 고정합 572 → 캔버스 378×504 · 가로 1024×690 오른쪽 열(안내 48·타이머 96·필통 282·제출 72) → 캔버스 406×541 */
+.play-draw { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; } /* 책 넘겨주기 회전 중 스크롤 깜빡임 방지 */
+.play-draw .book { min-height: 0; }
+/* DrawingCanvas 루트·도구 묶음의 인라인 flex 를 풀어 캔버스와 도구가 책의 칸에 직접 놓이게 한다(T04 는 클래스로 입히라고 둠) */
+.play-draw .dc-root, .play-draw .dc-tools { display: contents !important; }
+.play-draw .dc-canvas { border-radius: var(--radius-md); outline: var(--border-width-strong) solid var(--color-canvas-frame); outline-offset: calc(-1 * var(--border-width-strong)); background: var(--color-canvas-surface); }
+/* 필통(시안 .tray): 색 묶음·도구 묶음 두 칸을 붙여 한 상자로. 세로 64px 도구 2줄 */
+.play-draw .dc-row { justify-content: center; padding: var(--spacing-2); background: var(--color-tool-tray-surface); border: var(--border-width-default) solid var(--color-border); }
+.play-draw .dc-row:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 0; padding-bottom: calc(var(--size-touch-gap) / 2); }
+.play-draw .dc-row:last-child { border-radius: 0 0 var(--radius-md) var(--radius-md); border-top: 0; padding-top: calc(var(--size-touch-gap) / 2); margin-top: calc(-1 * var(--spacing-3)); }
+.play-draw .tool:disabled, .play-draw .swatch:disabled { opacity: 0.7; cursor: not-allowed; }
+.play-draw .prompt .text.long { font-size: var(--font-size-body-lg); line-height: 1.25; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.play-draw .prompt .hint.err { color: var(--color-destructive); font-weight: var(--font-weight-bold); }
+.play-draw .prompt-pic { height: 52px; width: calc(52px * 4 / 3); }
+.play-draw .prompt-pic .drawing, .play-draw .prompt-pic .missing { width: 100%; height: 100%; padding: 0; font-size: var(--font-size-caption); }
+.play-draw .prompt-pic .missing span { display: none; }
+.play-draw .timer .num { min-width: 2ch; }
+
+@media (orientation: landscape) and (min-width: 900px) {
+  .play-draw .book { grid-template-columns: var(--size-book-coil) minmax(0, 1fr) 312px; grid-template-rows: 48px auto auto auto 1fr auto; grid-template-areas: "coil prompt notice" "coil prompt timer" "coil stage tools1" "coil stage tools2" "coil stage ." "coil stage submit"; }
+  .play-draw .book > .notice { display: flex; grid-area: notice; font-size: 22px; }
+  .play-draw .head { display: contents; }
+  .play-draw .prompt { grid-area: prompt; }
+  .play-draw .head .timer { display: flex; grid-area: timer; }
+  .play-draw .timer .ring { width: var(--size-timer-ring); height: var(--size-timer-ring); }
+  .play-draw .timer .num { font-size: var(--font-size-timer); }
+  .play-draw .dc-stage { grid-area: stage; }
+  /* 가로 필통: 56px 4줄(스와치 4×2 · 굵기 3 + 지우개 · 되돌리기 + 전체 지우기) — 두 칸을 위아래로 */
+  .play-draw .dc-row { justify-content: flex-start; }
+  .play-draw .dc-row:first-child { grid-area: tools1; }
+  .play-draw .dc-row:last-child { grid-area: tools2; }
+  .play-draw .dc-row .tool, .play-draw .dc-row .swatch { width: var(--size-touch-min); height: var(--size-touch-min); }
+  .play-draw .dc-row .tool.wide { width: auto; flex: 1 1 120px; padding: 0 var(--spacing-2); }
+  .play-draw .book > .submit { grid-area: submit; }
+  .play-draw .prompt-pic { height: 72px; width: 96px; }
+}
+
+/* 받은 그림(Picture): 시안 .drawing 은 svg 용 — img 는 width/height 속성 대신 4:3 비율로 */
+img.drawing { height: auto; object-fit: contain; }
+
+/* ② 답 쓰기·기다리기 */
+.play-guess .help .confirm { color: var(--color-destructive); font-weight: var(--font-weight-bold); }
+.play-guess .guess-book.handoff-in > .page { animation: handoff-in calc(var(--motion-duration-handoff) * 0.6) var(--motion-easing-out) both; }
+.play-guess .page .drawing, .play-guess .page .missing { width: 100%; }
+.wait-sub { margin: 0; font-weight: var(--font-weight-bold); }

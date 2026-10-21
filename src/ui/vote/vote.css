@@ -1,0 +1,15 @@
+/* T06 투표·투표 결과 — 시안 ④ 부품(app.css) 위 배치만. 값은 토큰. */
+.play-vote .cand .drawing, .play-vote .cand .missing { width: 100%; }
+.play-vote .cand .missing span { font-size: var(--font-size-caption); }
+.play-vote .cand-guess { padding-right: calc(var(--size-sticker) + var(--spacing-2)); }
+.play-vote .vote-submit { max-width: 480px; margin: 0 auto; }
+.vote-none { margin: 0; font-family: var(--font-family-display); font-size: var(--font-size-body-lg); color: var(--color-muted-foreground); }
+.play-result .result-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); }
+.play-result .result-box { padding: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-3); }
+.play-result .best { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--spacing-4); }
+.play-result .best li { display: flex; flex-direction: column; gap: var(--spacing-2); }
+.play-result .who-best { font-family: var(--font-family-display); font-size: var(--font-size-body-lg); }
+.play-result .best .drawing, .play-result .best .missing { width: min(100%, calc(40dvh * 4 / 3)); }
+.play-result .result-cheer { height: 80px; width: auto; align-self: center; }
+.play-result .result-foot { display: flex; gap: var(--spacing-4); justify-content: center; flex-wrap: wrap; }
+@media (orientation: landscape) and (min-width: 900px) { .play-result .result-grid { grid-template-columns: 1fr 1fr; } }
