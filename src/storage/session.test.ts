@@ -116,6 +116,15 @@ describe('세션 키 수명 — 학생만 저장, ended·leave 에 삭제', () =
     expect(mem.has(KEY)).toBe(false);
   });
 
+  it('와이파이가 꺼진 채 이어하기를 눌러도(network) 키는 남는다', async () => {
+    const { host } = await setup();
+    const down = { open: () => Promise.reject(new Error('timeout')) };
+    const r = await resumeRoom({ network: down });
+    expect(r).toEqual({ ok: false, reason: 'network' });
+    expect(mem.has(KEY)).toBe(true);
+    host.leave();
+  });
+
   it('학생 leave 시 삭제', async () => {
     const { host, client } = await setup();
     client.leave();

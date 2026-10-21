@@ -292,6 +292,35 @@ describe('끊김 감지', () => {
     host.leave();
   });
 
+  it('방장 망 끊김·잠듦(등록은 남고 응답 없음) → 확인·다시 붙기 두 번 unreachable 이면 18초 안에 host-left', async () => {
+    for (const offset of [0, 500, 999]) {
+      const { net, host, all } = await room(3);
+      await flush(offset);
+      net.freeze(hostPeerId(host.code));
+      clearInterval((host as any).ping);
+      await flush(15000);
+      expect(all[1]!.view.phase).not.toBe('ended');
+      await flush(3000);
+      expect(all.slice(1).map((c) => c.view.ended)).toEqual(['host-left', 'host-left']);
+      vi.clearAllTimers();
+    }
+  });
+
+  it('다시 붙는 중 leave 는 닫힌 연결로 보내지 않고 끝내며, 더 붙지 않는다', async () => {
+    const { net, host, all } = await room(3);
+    const c = all[1]!;
+    net.freeze(hostPeerId(host.code));
+    await flush(11500);
+    expect(c.view.reconnecting).toBe(true);
+    const sent = vi.spyOn((c as any).conn, 'send');
+    c.leave();
+    expect(sent).not.toHaveBeenCalled();
+    expect(c.view.ended).toBe('left');
+    await flush(30000);
+    expect(c.view.ended).toBe('left');
+    vi.clearAllTimers();
+  });
+
   it('PeerServer 처럼 없는 peer 답이 6초 걸려도 방장 증발 뒤 9.5초 안에 host-left', async () => {
     for (const offset of [0, 300, 999]) {
       const net = createLoopback({ unavailableMs: 6000 });

@@ -61,6 +61,8 @@ export type Loopback = Network & {
   mute(id: string, on: boolean): void;
   /** id 가 말없이 사라진다 — 시그널링 등록은 없어지고 열린 연결은 close 없이 침묵(컨텍스트 강제 종료 흉내). */
   vanish(id: string): void;
+  /** id 가 등록은 남은 채 응답이 없다 — 열린 연결은 침묵, 새 connect 는 열리지 않고 timeout(망 끊긴 방장·잠든 노트북 흉내). */
+  freeze(id: string): void;
 };
 
 export function createLoopback(opts: Opts = {}): Loopback {
@@ -68,6 +70,7 @@ export function createLoopback(opts: Opts = {}): Loopback {
   const rng = opts.rng ?? Math.random;
   const eps = new Map<string, { onConn: (c: Conn) => void; conns: Set<LoopConn> }>();
   const mutedIds = new Set<string>();
+  const frozen = new Set<string>();
   const net = {
     deliver: (fn: () => void) => void setTimeout(fn, latency),
     muted: (a: string, b: string) => mutedIds.has(a) || mutedIds.has(b),
@@ -82,10 +85,11 @@ export function createLoopback(opts: Opts = {}): Loopback {
       const ep: Endpoint = {
         id,
         onConnection: (cb) => void (me.onConn = cb),
-        connect: (peerId) =>
+        connect: (peerId, timeoutMs) =>
           new Promise((resolve, reject) =>
             setTimeout(() => {
               const remote = eps.get(peerId);
+              if (remote && frozen.has(peerId)) return void (timeoutMs !== undefined && setTimeout(() => reject(new Error('timeout')), timeoutMs));
               if (!remote || eps.get(id) !== me) return void setTimeout(() => reject(new Error('peer-unavailable')), opts.unavailableMs ?? 0);
               const a = new LoopConn(peerId, id, net);
               const b = new LoopConn(id, peerId, net);
@@ -115,6 +119,10 @@ export function createLoopback(opts: Opts = {}): Loopback {
     vanish(id) {
       mutedIds.add(id);
       eps.delete(id);
+    },
+    freeze(id) {
+      mutedIds.add(id);
+      frozen.add(id);
     },
   };
 }

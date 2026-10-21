@@ -41,7 +41,7 @@ export type ClientView = {
   result: VoteResult | null;
   /** host-left = 방장이 나감(끊긴 뒤 다시 붙어 보니 방이 없음 포함). lost = 내 망 문제로 다시 못 붙음(세션 키를 남겨 이어하기 가능). left = 내가 나감. */
   ended: EndReason | 'lost' | 'left' | null;
-  /** 끊겨서 스스로 다시 붙는 중(최대 약 10초). 화면은 그대로 두고 "다시 연결하는 중" 정도만. */
+  /** 끊겨서 스스로 다시 붙는 중. 보통 1초 안, 최악은 방장 망 끊김 약 6초·내 망 끊김 약 21초(보고서 수정 3차). 화면은 그대로 두고 "다시 연결하는 중" 정도만. */
   reconnecting: boolean;
 };
 
@@ -58,17 +58,24 @@ type Opts = {
   redial?: { network: Network; hostId: string };
 };
 
-// 끊긴 뒤 다시 붙기: 최대 3번, 실패 사이 3초.
+// 끊긴 뒤 다시 붙기: 최대 3번, 내 망 실패 사이 3초. 연결 시도는 6초까지만 기다린다.
+// 시그널링은 되는데 방장에게 P2P 가 안 열리는 것(unreachable)이 침묵 뒤 두 번이면 방장이 떠난 것(망 끊김·잠듦 —
+// PeerServer 는 죽은 방장을 60초 동안 등록된 채로 두어 peer-unavailable 이 오지 않는다). 직전까지 P2P 로 붙어 있었으니 내 쪽 P2P 탓일 가능성은 낮다.
 // 방장 peer 가 없다는 답(peer-unavailable) 한 번이면 방장이 떠난 것: PeerServer 는 없는 peer 앞 offer 를
 // expire_timeout(5초) 동안 쥐고 있다가 EXPIRE 로 답하므로, 그 답 자체가 "5초 넘게 등록이 없었다"는 뜻이다.
 export const REDIAL_TRIES = 3;
 export const REDIAL_GAP_MS = 3000;
 /** ping 이 이만큼 끊기면 연결은 그대로 둔 채 시그널링에 방장 peer 가 아직 있는지 물어본다(말없이 사라진 방장을 10초보다 빨리 알기). */
 export const PROBE_AFTER_MS = 2000;
+export const REDIAL_CONNECT_MS = 6000;
+export const UNREACHABLE_LIMIT = 2;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** 방장에게 새 연결. 'no-room' = 시그널링이 방장 peer 없음이라고 답함, 'net' = 내 쪽 망·시그널링 문제(구별 못 함). */
-async function dial(network: Network, hostId: string): Promise<{ ep: Endpoint; conn: Conn } | 'no-room' | 'net'> {
+/**
+ * 방장에게 새 연결. 'no-room' = 시그널링이 방장 peer 없음이라고 답함, 'net' = 내 시그널링이 안 열림(내 망 문제),
+ * 'unreachable' = 시그널링은 되는데 방장에게 P2P 가 안 열림(timeout·실패).
+ */
+async function dial(network: Network, hostId: string, timeoutMs?: number): Promise<{ ep: Endpoint; conn: Conn } | 'no-room' | 'net' | 'unreachable'> {
   let ep: Endpoint;
   try {
     ep = await network.open(randomId());
@@ -76,10 +83,10 @@ async function dial(network: Network, hostId: string): Promise<{ ep: Endpoint; c
     return 'net';
   }
   try {
-    return { ep, conn: await ep.connect(hostId) };
+    return { ep, conn: await ep.connect(hostId, timeoutMs) };
   } catch (e) {
     ep.destroy();
-    return (e as Error).message === 'peer-unavailable' ? 'no-room' : 'net';
+    return (e as Error).message === 'peer-unavailable' ? 'no-room' : 'unreachable';
   }
 }
 
@@ -133,6 +140,8 @@ export class ClientSession {
   /** 다시 붙기 시도 수 — 방장 메시지를 하나라도 받으면 0. 붙어도 방장이 말이 없으면(멈춘 탭) 계속 센다. */
   private tries = 0;
   private probedFor = -1; // 이 lastHeard 에 대해 이미 물어봤으면 다시 안 묻는다
+  /** 마지막으로 방장 소식을 들은 뒤 unreachable 횟수(확인·다시 붙기 합산). */
+  private unreachable = 0;
   private subs = new Set<(v: ClientView) => void>();
   private now: () => number;
 
@@ -206,7 +215,7 @@ export class ClientSession {
 
   leave(): void {
     if (this.disposed) return;
-    this.send({ t: 'leave' });
+    if (!this.redialing) this.send({ t: 'leave' }); // 다시 붙는 중이면 열린 연결이 없다 — 방장은 끊김으로 처리
     if (this.o.persist) clearSession();
     this.set({ phase: 'ended', ended: 'left' });
     this.dispose();
@@ -241,6 +250,7 @@ export class ClientSession {
     if (this.disposed || !isMsg(m) || m.v !== V) return;
     this.lastHeard = this.now();
     this.tries = 0;
+    this.unreachable = 0;
     this.apply(m as unknown as ToClient);
   }
 
@@ -333,14 +343,16 @@ export class ClientSession {
     this.set({ reconnecting: true });
     this.conn.close();
     this.o.onDispose?.();
-    for (let i = 0; this.tries < REDIAL_TRIES; i++) {
-      if (i) await sleep(REDIAL_GAP_MS);
-      this.tries++;
+    let wait = false;
+    for (; this.tries < REDIAL_TRIES; this.tries++) {
+      if (wait) await sleep(REDIAL_GAP_MS);
       if (this.disposed) return;
-      const d = await dial(r.network, r.hostId);
+      const d = await dial(r.network, r.hostId, REDIAL_CONNECT_MS);
       if (this.disposed) return void (typeof d === 'object' && d.ep.destroy());
-      if (d === 'no-room') return this.finish('host-left');
-      if (d === 'net') continue;
+      if (d === 'no-room' || (d === 'unreachable' && ++this.unreachable >= UNREACHABLE_LIMIT)) return this.finish('host-left');
+      wait = d === 'net'; // unreachable 은 이미 6초 기다렸다
+      if (typeof d !== 'object') continue;
+      this.tries++;
       this.o.onDispose = () => d.ep.destroy();
       this.attach(d.conn);
       this.redialing = false;
@@ -355,12 +367,14 @@ export class ClientSession {
   /** 방장 peer 가 시그널링에 없다고 답하면 방장이 떠난 것. 있거나 내 망 문제면 아무것도 안 한다(10초 규칙에 맡김). */
   private async probe(r: { network: Network; hostId: string }): Promise<void> {
     const heard = (this.probedFor = this.lastHeard);
-    const d = await dial(r.network, r.hostId);
+    const d = await dial(r.network, r.hostId, REDIAL_CONNECT_MS);
     if (typeof d === 'object') {
       d.conn.close();
       d.ep.destroy();
     }
-    if (d === 'no-room' && this.lastHeard === heard) this.finish('host-left');
+    if (this.lastHeard !== heard) return;
+    if (d === 'no-room') this.finish('host-left');
+    else if (d === 'unreachable') this.unreachable++; // 다시 붙기에서 한 번 더 그러면 host-left
   }
 
   /** 끝. host-left 면 세션 키도 지운다(PRD §8 방장 끊김). */
@@ -413,7 +427,8 @@ export async function resumeRoom(o: { network: Network; now?: () => number }): P
   const s = loadSession(o.now?.());
   if (!s) return { ok: false, reason: 'no-session' };
   const r = await connectAnd(o.network, s.hostPeerId, s.roomCode, s.pid, (c) => c.rejoin(), o.now);
-  if (!r.ok && r.reason !== 'lost') clearSession();
+  // 내 망 문제(lost·network)면 키를 남겨 망이 돌아온 뒤 다시 이어하기
+  if (!r.ok && r.reason !== 'lost' && r.reason !== 'network') clearSession();
   return r;
 }
 
@@ -427,8 +442,8 @@ async function connectAnd(
 ): Promise<{ ok: true; client: ClientSession } | { ok: false; reason: string }> {
   // 한 번 실패(채널 오류·ICE 실패 등 일시적일 수 있음)면 곧바로 한 번 더
   let d = await dial(network, hostId);
-  if (d === 'net') d = await dial(network, hostId);
-  if (d === 'no-room' || d === 'net') return { ok: false, reason: d === 'net' ? 'network' : d };
+  if (d === 'net' || d === 'unreachable') d = await dial(network, hostId);
+  if (typeof d !== 'object') return { ok: false, reason: d === 'no-room' ? d : 'network' };
   const { ep, conn } = d;
   const client = new ClientSession(conn, { pid, persist: { roomCode, hostPeerId: hostId }, now, onDispose: () => ep.destroy(), redial: { network, hostId } });
   const r = await first(client);

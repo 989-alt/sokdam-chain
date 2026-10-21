@@ -13,12 +13,12 @@ export interface Conn {
 export interface Endpoint {
   readonly id: string;
   onConnection(cb: (c: Conn) => void): void;
-  /** 열리면 resolve. 상대 없음·실패면 Error(message = 'peer-unavailable' 등) 로 reject. */
-  connect(peerId: string): Promise<Conn>;
+  /** 열리면 resolve. 상대 없음·실패면 Error(message = 'peer-unavailable' | 'timeout' | 'connect-failed') 로 reject. timeoutMs 기본은 구현 몫. */
+  connect(peerId: string, timeoutMs?: number): Promise<Conn>;
   destroy(): void;
 }
 
 export interface Network {
-  /** id 로 시그널링 등록. 이미 쓰는 id 면 Error('unavailable-id') 로 reject. */
+  /** id 로 시그널링 등록. 이미 쓰는 id 면 Error('unavailable-id'), 시그널링이 안 열리면 Error('timeout' 등) 로 reject. */
   open(id: string): Promise<Endpoint>;
 }
