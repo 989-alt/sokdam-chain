@@ -70,11 +70,13 @@ export function pickWords(
     src.listSource === 'teacher-only'
       ? teacher
       : [...src.pool.filter((w) => src.level === null || w.level === src.level), ...(src.listSource === 'teacher-add' ? teacher : [])];
+  const seen = new Set<string>();
+  const unique = base.filter((w) => !seen.has(w.id) && !!seen.add(w.id)); // 같은 id 는 하나만 — 중복 뽑기 방지
   const ex = new Set(exclude);
-  let cand = base.filter((w) => !ex.has(w.id));
+  let cand = unique.filter((w) => !ex.has(w.id));
   let reset = false;
   if (cand.length < n) {
-    cand = [...base];
+    cand = [...unique];
     reset = true;
   }
   if (cand.length < n) return { ok: false, reason: 'not-enough-words' };
@@ -90,7 +92,7 @@ export type CreateOptions = WordSource & {
   mode: Mode;
   minPlayers: number; // 온라인 4, 돌려쓰기 3
   maxPlayers: number; // 6
-  /** 돌려쓰기만 넘긴다(1|2). 넘기면 sequential, B 체인 시작 slot = floor(N/2). 없으면 체인 N개 lockstep. */
+  /** 돌려쓰기만 넘긴다(1|2). 넘기면 sequential, B 체인 시작 slot = floor(N/2) — 그게 A 마지막 사람이면 +1 (mod N). 없으면 체인 N개 lockstep. */
   chainCount?: 1 | 2;
   exclude?: readonly string[];
   rng: Rng;
@@ -99,7 +101,9 @@ export type CreateOptions = WordSource & {
 export function createGame(o: CreateOptions): { ok: true; game: Game } | Fail {
   const n = o.playerCount;
   if (!Number.isInteger(n) || n < o.minPlayers || n > o.maxPlayers) return { ok: false, reason: 'player-count' };
-  const starts = o.chainCount === undefined ? [...Array(n).keys()] : [0, Math.floor(n / 2)].slice(0, o.chainCount);
+  const b = Math.floor(n / 2);
+  const bStart = b === assignee(0, stepCount(n) - 1, n) ? (b + 1) % n : b; // N=3 에서 A 마지막 = B 첫 사람 방지
+  const starts = o.chainCount === undefined ? [...Array(n).keys()] : [0, bStart].slice(0, o.chainCount);
   const exclude = o.exclude ?? [];
   const picked = pickWords(o, starts.length, exclude, o.rng);
   if (!picked.ok) return picked;
@@ -189,10 +193,10 @@ export function applySubmission(
   return { ok: true, game: replaceEntry(g, key, { ...e, status: 'done', text: payload.text.trim() }), ignored: false };
 }
 
-/** 미도착 처리. pending 만 바꾸고 done·missing 은 그대로. */
+/** 미도착 처리. 지금 차례의 pending 만 바꾸고 나머지는 같은 game. */
 export function markMissing(g: Game, key: string): Game {
   const e = entryAt(g, key);
-  return e && e.status === 'pending' ? replaceEntry(g, key, { ...e, status: 'missing' }) : g;
+  return e && e.status === 'pending' && openKeys(g).includes(key as EntryKey) ? replaceEntry(g, key, { ...e, status: 'missing' }) : g;
 }
 
 export const isStepComplete = (g: Game): boolean =>
@@ -233,7 +237,8 @@ export function voteCandidates(g: Game, slot: number): { drawings: Candidate[]; 
   };
 }
 
-export type Vote = { drawing: EntryKey; answer: EntryKey };
+/** null = 그 부문은 고르지 않음(후보가 없을 때 등). */
+export type Vote = { drawing: EntryKey | null; answer: EntryKey | null };
 export type Votes = Record<number, Vote | 'abstain'>;
 export type TallyResult = {
   bestDrawings: EntryKey[];
@@ -245,12 +250,13 @@ export type TallyResult = {
 /** 집계. 기권·자기 것·후보가 아닌 칸에 던진 표는 무효. 최다 득표 동점은 전부, 표 0 이면 빈 배열. */
 export function tally(votes: Votes, g: Game): TallyResult {
   const { drawings, answers } = voteCandidates(g, -1);
-  const count = (cands: Candidate[], pick: (v: Vote) => string) => {
+  const count = (cands: Candidate[], pick: (v: Vote) => EntryKey | null) => {
     const owner = new Map(cands.map((c) => [c.key as string, c.entry.bySlot]));
     const counts: Record<string, number> = {};
     for (const [voter, v] of Object.entries(votes)) {
       if (v === 'abstain') continue;
       const key = pick(v);
+      if (key === null) continue;
       const by = owner.get(key);
       if (by === undefined || by === Number(voter)) continue;
       counts[key] = (counts[key] ?? 0) + 1;

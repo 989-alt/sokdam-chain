@@ -57,9 +57,13 @@ function deepFreeze<T>(o: T): T {
   return o;
 }
 
-/** 지금 차례 전부 제출(답은 텍스트, 그림은 imgId). */
-function submitAll(g: Game, text = (k: string) => `답${k}`): Game {
+/** 지금 차례 전부 제출(답은 텍스트, 그림은 imgId), missing 에 든 칸은 결측 처리. 그 뒤 advance. */
+function submitAll(g: Game, text = (k: string) => `답${k}`, missing: string[] = []): Game {
   for (const k of openKeys(g)) {
+    if (missing.includes(k)) {
+      g = markMissing(g, k);
+      continue;
+    }
     const [c, s] = k.split(':').map(Number);
     const e = g.chains[c!]!.entries[s!]!;
     const r = applySubmission(g, k, e.bySlot, e.kind === 'draw' ? { imgId: `img${k}` } : { text: text(k) });
@@ -113,6 +117,18 @@ describe('createGame', () => {
     expect(mk(4, { chainCount: 1 }).chains).toHaveLength(1);
   });
 
+  it.each([
+    [3, [0, 2], [2, 0]],
+    [4, [0, 2], [2, 3, 0, 1]],
+    [5, [0, 2], [2, 3, 4, 0]],
+    [6, [0, 3], [3, 4, 5, 0, 1, 2]],
+  ])('N=%i 체인 B 시작 — floor(N/2), A 마지막 사람과 같으면 +1', (n, starts, bSlots) => {
+    const g = mk(n, { minPlayers: 3, chainCount: 2 });
+    expect(g.chains.map((c) => c.startSlot)).toEqual(starts);
+    expect(g.chains[1]!.entries.map((e) => e.bySlot)).toEqual(bSlots);
+    expect(g.chains[1]!.entries[0]!.bySlot).not.toBe(g.chains[0]!.entries.at(-1)!.bySlot);
+  });
+
   it('sequential — 체인 A 끝까지 뒤 체인 B', () => {
     let g = mk(4, { chainCount: 2 });
     const seen: string[] = [];
@@ -155,6 +171,13 @@ describe('pickWords', () => {
     });
   });
 
+  it('teacher-add — 교사 항목 id 가 풀과 같으면 하나만', () => {
+    const dup = [{ ...pool[0]!, text: '교사판' }];
+    const r = pickWords({ ...src, pool: pool.slice(0, 3), teacher: dup, listSource: 'teacher-add' }, 3, [], mulberry32(1));
+    expect(r.ok && r.words.map((x) => x.id).sort()).toEqual(['p0', 'p1', 'p2']);
+    expect(pickWords({ ...src, pool: pool.slice(0, 3), teacher: dup, listSource: 'teacher-add' }, 4, [], mulberry32(1)).ok).toBe(false);
+  });
+
   it('teacher-only 는 level 무시하고 교사 항목만, teacher-add 는 합침', () => {
     const only = pickWords({ ...src, teacher, listSource: 'teacher-only' }, 3, [], mulberry32(1));
     expect(only.ok && only.words.every((x) => x.id.startsWith('t-'))).toBe(true);
@@ -176,13 +199,13 @@ describe('inputFor', () => {
     let g = mk(6);
     g = submitAll(g); // 0 draw done
     expect(inputFor(g.chains[0]!, 1, 'A')).toEqual({ kind: 'image', imgId: 'img0:0' });
-    g = markMissing(markMissing(g, '0:1'), '0:2');
+    g = submitAll(submitAll(g, undefined, ['0:1']), undefined, ['0:2']);
     expect(inputFor(g.chains[0]!, 3, 'A')).toEqual({ kind: 'image', imgId: 'img0:0', fallbackNote: true });
   });
 
   it('전부 결측이면 제시어(B 는 뜻) + fallbackNote', () => {
     let g = mk(4);
-    g = markMissing(markMissing(g, '1:0'), '1:1');
+    g = submitAll(submitAll(g, undefined, ['1:0']), undefined, ['1:1']);
     const c = g.chains[1]!;
     expect(inputFor(c, 2, 'A')).toEqual({ kind: 'text', text: c.word.text, fallbackNote: true });
     expect(inputFor(c, 2, 'B')).toEqual({ kind: 'meaning', text: c.word.meaning, fallbackNote: true });
@@ -233,6 +256,19 @@ describe('applySubmission / markMissing / 단계', () => {
     if (!r.ok) throw new Error();
     expect(markMissing(r.game, '0:0')).toBe(r.game);
     expect(markMissing(r.game, '1:0').chains[1]!.entries[0]!.status).toBe('missing');
+  });
+
+  it('markMissing 은 지금 차례 칸만 — 미래 칸은 같은 game', () => {
+    const g = mk(4);
+    expect(markMissing(g, '0:1')).toBe(g);
+    expect(markMissing(g, '0:3')).toBe(g);
+  });
+
+  it('지금 차례의 missing 칸에 늦게 온 제출은 ignored, missing 유지', () => {
+    const g = markMissing(mk(4), '0:0');
+    const r = applySubmission(g, '0:0', 0, { imgId: 'late' });
+    expect(r.ok && r.ignored && r.game === g).toBe(true);
+    expect(g.chains[0]!.entries[0]!.status).toBe('missing');
   });
 
   it('단계 완료 — 모든 체인 현재 칸이 done/missing 이면 완료, advance', () => {
@@ -318,6 +354,12 @@ describe('투표', () => {
     expect(tie.bestAnswers.sort()).toEqual(['0:1', '3:3']);
     expect(tally({}, g)).toMatchObject({ bestDrawings: [], bestAnswers: [] });
     expect(tally({ 0: 'abstain', 1: 'abstain' }, g)).toMatchObject({ bestDrawings: [], bestAnswers: [] });
+  });
+
+  it('부문별 null 은 그 부문만 건너뜀', () => {
+    const r = tally({ 2: { drawing: null, answer: '0:1' }, 3: { drawing: '1:0', answer: null } }, played());
+    expect(r.drawingCounts).toEqual({ '1:0': 1 });
+    expect(r.answerCounts).toEqual({ '0:1': 1 });
   });
 });
 
