@@ -1,0 +1,76 @@
+/* tokens.json 0.2.1 → CSS 변수(이름 = 토큰 경로). 승인 시안 3-cartoon-book.html 의 :root 그대로. 색 리터럴은 이 파일에만 둔다. */
+/* page-turn 선언은 콜론 앞에 공백을 둔다 — PRD S4 정적 검사(TURN 서버 grep)에 걸리지 않게. */
+:root {
+  --color-background: #F0F4FF; --color-foreground: #1E1B4B;
+  --color-card: #FFFFFF; --color-card-foreground: #1E1B4B;
+  --color-primary: #3B5BDB; --color-primary-foreground: #FFFFFF;
+  --color-secondary: #DEE5F5; --color-secondary-foreground: #1E1B4B;
+  --color-muted: #DEE5F5; --color-muted-foreground: #4A4F6A;
+  --color-accent: #FFD43B; --color-accent-foreground: #1E1B4B;
+  --color-destructive: #E03131; --color-destructive-foreground: #FFFFFF;
+  --color-border: #1E1B4B; --color-input: #1E1B4B; --color-ring: #1E1B4B;
+  --color-notice-surface: #FFD43B; --color-notice-foreground: #1E1B4B;
+  --color-prompt-surface: #FFFFFF; --color-prompt-foreground: #1E1B4B; --color-prompt-label: #4A4F6A;
+  --color-canvas-surface: #FFFFFF; --color-canvas-frame: #1E1B4B; --color-canvas-placeholder: #858BA6;
+  --color-book-cover-1: #FFB4A8; --color-book-cover-2: #FFD98A; --color-book-cover-3: #B5E7A0;
+  --color-book-cover-4: #C9B8FF; --color-book-cover-5: #9EDBFF; --color-book-cover-6: #FFC4E6;
+  --color-book-page: #FFFFFF; --color-book-page-foreground: #1E1B4B; --color-book-line: #C7D2F0;
+  --color-book-coil: #1E1B4B; --color-book-coil-hole: #DEE5F5;
+  --color-book-tab: #DEE5F5; --color-book-tab-foreground: #4A4F6A;
+  --color-book-tab-active: #FFD43B; --color-book-tab-active-foreground: #1E1B4B; --color-book-nametag: #FFFFFF;
+  --color-tool-surface: #FFFFFF; --color-tool-foreground: #1E1B4B;
+  --color-tool-selected-surface: #1E1B4B; --color-tool-selected-foreground: #FFFFFF;
+  --color-tool-swatch-ring: #1E1B4B; --color-tool-tray-surface: #DEE5F5;
+  --color-timer-foreground: #1E1B4B; --color-timer-warn: #E8590C; --color-timer-danger: #E03131;
+  --color-timer-track: #DEE5F5; --color-timer-surface: #FFFFFF;
+  --color-roomcode-surface: #1E1B4B; --color-roomcode-foreground: #FFD43B;
+  --color-player-surface: #FFFFFF; --color-player-foreground: #1E1B4B;
+  --color-player-connected: #16A34A; --color-player-disconnected: #DC2626;
+  --color-waiting-surface: #F0F4FF; --color-waiting-foreground: #1E1B4B;
+  --color-waiting-done: #16A34A; --color-waiting-pending: #A8A29E;
+  --color-chain-card-surface: #FFFFFF; --color-chain-card-border: #1E1B4B; --color-chain-step-label: #4A4F6A;
+  --color-chain-guess-foreground: #1E1B4B; --color-chain-fallback-surface: #FFF3BF; --color-chain-fallback-foreground: #5C3D00;
+  --color-meaning-card-surface: #FFFFFF; --color-meaning-card-border: #1E1B4B; --color-meaning-title: #3B5BDB;
+  --color-meaning-foreground: #1E1B4B; --color-meaning-example-surface: #F0F4FF; --color-meaning-example-foreground: #1E1B4B; --color-meaning-label: #4A4F6A;
+  --color-sticker-surface: #FFD43B; --color-sticker-foreground: #1E1B4B; --color-sticker-slot: #DEE5F5;
+  --color-vote-candidate-surface: #FFFFFF; --color-vote-candidate-border: #1E1B4B;
+  --color-vote-selected-surface: #FFF8D6; --color-vote-selected-border: #FFD43B;
+  --color-vote-disabled-surface: #DEE5F5; --color-vote-disabled-foreground: #4A4F6A;
+  --color-mask-glyph: #1E1B4B; --color-progress-track: #DEE5F5; --color-progress-fill: #3B5BDB;
+  --color-banner-offline-surface: #FDE2E2; --color-banner-offline-foreground: #8A1C1C;
+
+  --pen-color-1: #1A1A1A; --pen-color-2: #E03131; --pen-color-3: #F76707; --pen-color-4: #FCC419;
+  --pen-color-5: #2F9E44; --pen-color-6: #1C7ED6; --pen-color-7: #7048E8; --pen-color-8: #A0522D;
+  --pen-color-eraser: var(--color-canvas-surface);
+  --pen-width-thin: 4px; --pen-width-medium: 10px; --pen-width-thick: 22px; --pen-width-eraser: 36px;
+
+  --font-family-display: 'Jua', 'Noto Sans KR', sans-serif;
+  --font-family-body: 'Noto Sans KR', system-ui, sans-serif;
+  --font-size-caption: 18px; --font-size-body: 20px; --font-size-body-lg: 24px;
+  --font-size-button: 22px; --font-size-button-lg: 26px; --font-size-heading: 32px;
+  --font-size-prompt: 36px; --font-size-meaning-title: 40px; --font-size-roomcode: 56px;
+  --font-size-timer: 88px; --font-size-timer-compact: 64px;
+  --font-weight-regular: 400; --font-weight-medium: 500; --font-weight-bold: 700;
+  --font-lineHeight-tight: 1.15; --font-lineHeight-body: 1.5;
+
+  --size-touch-min: 56px; --size-touch-tool: 64px; --size-touch-primary: 72px; --size-touch-gap: 12px;
+  --size-icon-sm: 24px; --size-icon-md: 28px; --size-icon-lg: 32px;
+  --size-book-coil: 24px; --size-book-tab-height: 64px; --size-book-tab-min-width: 120px;
+  --size-book-nametag-height: 44px; --size-book-thumb-width: 96px; --size-sticker: 64px;
+  --size-timer-ring: 88px; --size-timer-ring-compact: 80px; --size-layout-max: 1280px;
+
+  --spacing-1: 4px; --spacing-2: 8px; --spacing-3: 12px; --spacing-4: 16px; --spacing-5: 20px;
+  --spacing-6: 24px; --spacing-8: 32px; --spacing-10: 40px; --spacing-12: 48px; --spacing-16: 64px;
+
+  --radius-sm: 6px; --radius-md: 16px; --radius-lg: 24px; --radius-xl: 32px; --radius-page: 0 0 20px 20px; --radius-full: 9999px;
+  --border-width-default: 3px; --border-width-strong: 4px; --border-width-selected: 5px;
+  --shadow-card: 0 4px 0 #1E1B4B; --shadow-raised: 0 6px 0 #1E1B4B; --shadow-pressed: 0 1px 0 #1E1B4B; --shadow-sticker: 0 2px 0 #1E1B4B;
+  --motion-duration-fast: 120ms; --motion-duration-normal: 240ms; --motion-duration-page-turn : 420ms; --motion-duration-handoff: 600ms;
+  --motion-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-easing-in: cubic-bezier(0.4, 0, 1, 1);        /* 떠날 때 가속 */
+  --motion-easing-out: cubic-bezier(0, 0, 0.2, 1);       /* 도착할 때 감속 */
+  --motion-easing-pop: cubic-bezier(0.34, 1.56, 0.64, 1); /* 스티커 붙임 살짝 넘침 */
+  /* 시안 body 의 CSS 점무늬 대체층 색(UI-07 을 못 읽을 때만 보임) — 토큰 foreground 8% */
+  --color-paper-dot: rgba(30, 27, 75, 0.08);
+}
+@media (prefers-reduced-motion: reduce) { :root { --motion-duration-fast: 0ms; --motion-duration-normal: 0ms; --motion-duration-page-turn : 0ms; --motion-duration-handoff: 0ms; } }
