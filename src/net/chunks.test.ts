@@ -44,7 +44,7 @@ describe('분할·재조립', () => {
   it('잘못된 조각은 무시', () => {
     const done = vi.fn();
     const a = new Assembler(done);
-    for (const c of [null, { imgId: 'x', idx: 1, total: 1, data: 'a' }, { imgId: 'x', idx: 0, total: 999, data: 'a' }, { imgId: 'x', idx: 0, total: 1, data: 'a'.repeat(CHUNK_CHARS + 1) }])
+    for (const c of [null, { imgId: 'x', idx: 1, total: 1, data: 'a' }, { imgId: 'x', idx: 0, total: 999, data: 'a' }, { imgId: 'x', idx: 0, total: 1, data: 'a'.repeat(CHUNK_CHARS + 1) }, { imgId: 'x', idx: 0, total: 1, data: '<script>' }])
       a.add(c);
     expect(done).not.toHaveBeenCalled();
     a.clear();

@@ -23,7 +23,7 @@ import {
   type Votes,
   type Word,
 } from '../engine';
-import { Assembler, sniffMime, split } from './chunks';
+import { ASSEMBLE_MS, Assembler, sniffMime, split } from './chunks';
 import { ClientSession } from './client-session';
 import { connPair } from './loopback';
 import { hostPeerId, randomId, randomRoomCode } from './peer-id';
@@ -53,6 +53,8 @@ export const MAX_NAME = 20; // 신뢰 경계 상한(계약에 값 없음 — 보
 export const MAX_ANSWER = 100;
 const REGISTER_TRIES = 5;
 const FLUSH_MS = 200;
+
+type Incoming = { slot: number; key: EntryKey; timer: ReturnType<typeof setTimeout> };
 
 type Player = {
   pid: string;
@@ -93,7 +95,7 @@ export type HostOptions = {
   now?: () => number;
 };
 
-const isPid = (x: unknown): x is string => typeof x === 'string' && /^[a-z0-9]{16,64}$/.test(x);
+const isPid = (x: unknown): x is string => typeof x === 'string' && /^[a-z0-9]{16,32}$/.test(x);
 const isKeyOrNull = (x: unknown): x is EntryKey | null => x === null || (typeof x === 'string' && parseKey(x) !== null);
 const keysOf = (c: ReturnType<typeof voteCandidates>): CandidateKeys => ({
   drawings: c.drawings.map((x) => x.key),
@@ -117,12 +119,13 @@ export class HostSession {
   private reviewTimer: ReturnType<typeof setTimeout> | undefined;
   private absent = new Map<number, ReturnType<typeof setTimeout>>();
   private ping: ReturnType<typeof setInterval>;
-  /** `${pid}:${학생 imgId}` → 받는 중인 그림의 칸. */
-  private incoming = new Map<string, { slot: number; key: EntryKey }>();
+  /** `${pid}:${학생 imgId}`(≤ 32+1+31 = 64자, isChunk 상한) → 받는 중인 그림의 칸. timer = 헤더부터 10초. */
+  private incoming = new Map<string, Incoming>();
   private assembler = new Assembler(
     (id, b64) => this.onImage(id, b64),
-    (id) => this.incoming.delete(id),
+    (id) => this.dropIncoming(id, 'bad-image'),
   );
+  private onUnload = () => this.leave();
   private subs = new Set<(v: HostView) => void>();
   private now: () => number;
   private rng: Rng;
@@ -136,6 +139,10 @@ export class HostSession {
     this.rng = o.rng ?? Math.random;
     ep.onConnection((c) => this.accept(c));
     this.ping = setInterval(() => this.tick(), PING_MS);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', this.onUnload);
+      window.addEventListener('beforeunload', this.onUnload);
+    }
   }
 
   // ── UI 가 부르는 것 ──────────────────────────────────────────
@@ -183,7 +190,7 @@ export class HostSession {
   again(): { ok: true } | { ok: false; reason: string } {
     if (this.phase !== 'vote-result') return { ok: false, reason: 'not-finished' };
     this.images.clear();
-    this.incoming.clear();
+    for (const id of [...this.incoming.keys()]) this.dropIncoming(id);
     this.assembler.clear();
     for (const p of this.players) p.sentImgs.clear();
     this.broadcast({ t: 'again' });
@@ -198,7 +205,12 @@ export class HostSession {
     this.clearTurnTimers();
     clearTimeout(this.reviewTimer);
     clearInterval(this.ping);
+    for (const id of [...this.incoming.keys()]) this.dropIncoming(id);
     this.assembler.clear();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pagehide', this.onUnload);
+      window.removeEventListener('beforeunload', this.onUnload);
+    }
     this.broadcast({ t: 'ended', reason });
     this.emit();
     setTimeout(() => {
@@ -273,6 +285,8 @@ export class HostSession {
     p.conn = conn; // 새 연결 채택 — 옛 연결의 close 는 playerOf 가 못 찾아 무시된다
     p.sentImgs = new Set();
     p.lastSeenAt = this.now();
+    // 옛 연결로 받던 그림은 버린다 — 학생이 sync 를 받고 다시 제출한다
+    for (const id of [...this.incoming.keys()]) if (id.startsWith(`${p.pid}:`)) this.dropIncoming(id);
     if (old && old !== conn) old.close();
     this.send(p, { t: 'joined', pid: p.pid, slot: p.slot, settings: this.o.settings });
     this.sendSync(p);
@@ -387,20 +401,37 @@ export class HostSession {
   private onDrawHeader(p: Player, m: Record<string, unknown>): void {
     const { chainIdx, step, imgId, mime, bytes } = m;
     if (this.phase !== 'play' || !Number.isInteger(chainIdx) || !Number.isInteger(step)) return;
-    if (typeof imgId !== 'string' || imgId.length < 1 || imgId.length > 40) return;
+    if (typeof imgId !== 'string' || imgId.length < 1 || imgId.length > 31) return;
     const key = entryKey(chainIdx as number, step as number);
     const e = this.entry(key);
     if (!e || e.kind !== 'draw' || e.bySlot !== p.slot || e.status !== 'pending' || !openKeys(this.game!).includes(key)) return;
-    if ([...this.incoming.values()].some((x) => x.key === key)) return; // 이미 받는 중
     if (typeof bytes !== 'number' || bytes > MAX_IMG_BYTES) return this.reject(p.conn!, 'too-large');
-    if (mime !== 'image/webp' && mime !== 'image/png') return;
-    this.incoming.set(`${p.pid}:${imgId}`, { slot: p.slot, key });
+    if (mime !== 'image/webp' && mime !== 'image/png') return this.reject(p.conn!, 'bad-image');
+    // 같은 칸을 받는 중이면(담당은 이 학생뿐) 새 제출로 갈아탄다 — 말없이 버리면 학생이 submitted 로 멈춘다
+    for (const [id, x] of this.incoming) if (x.key === key) this.dropIncoming(id);
+    const scoped = `${p.pid}:${imgId}`;
+    this.incoming.set(scoped, { slot: p.slot, key, timer: setTimeout(() => this.dropIncoming(scoped, 'bad-image'), ASSEMBLE_MS) });
+  }
+
+  /** 받는 중인 그림을 버린다. reason 이 있고 그 칸이 아직 열려 있으면 학생에게 알려 다시 제출하게 한다. */
+  private dropIncoming(scoped: string, reason?: RejectReason): void {
+    const d = this.incoming.get(scoped);
+    if (!d) return;
+    clearTimeout(d.timer);
+    this.incoming.delete(scoped);
+    this.assembler.drop(scoped);
+    const p = this.players.find((x) => x.slot === d.slot);
+    const e = this.entry(d.key);
+    if (reason && p?.conn && this.phase === 'play' && e?.status === 'pending' && openKeys(this.game!).includes(d.key)) this.reject(p.conn, reason);
+    this.emit();
   }
 
   private onImage(scoped: string, b64: string): void {
     const d = this.incoming.get(scoped);
-    this.incoming.delete(scoped);
-    if (!d || this.phase !== 'play' || !sniffMime(b64) || (b64.length * 3) / 4 > MAX_IMG_BYTES + 3) return;
+    if (!d) return;
+    const bad = !sniffMime(b64) ? 'bad-image' : (b64.length * 3) / 4 > MAX_IMG_BYTES + 3 ? 'too-large' : undefined;
+    this.dropIncoming(scoped, bad);
+    if (bad || this.phase !== 'play') return;
     const k = parseKey(d.key)!;
     const imgId = `r${this.round}-${k.chainIdx}-${k.step}`;
     const r = applySubmission(this.game!, d.key, d.slot, { imgId });
@@ -625,10 +656,6 @@ export async function createHost(
   if (!r.ok) {
     host.leave();
     return r;
-  }
-  if (typeof window !== 'undefined') {
-    window.addEventListener('pagehide', () => host.leave());
-    window.addEventListener('beforeunload', () => host.leave());
   }
   return { ok: true, host, me };
 }

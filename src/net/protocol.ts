@@ -15,7 +15,7 @@ export type Settings = {
 
 export type Phase = 'lobby' | 'play' | 'review' | 'vote' | 'vote-result' | 'ended';
 export type LobbyPlayer = { slot: number; name: string; connected: boolean };
-export type RejectReason = 'full' | 'started' | 'version' | 'name' | 'unknown' | 'ended' | 'too-large';
+export type RejectReason = 'full' | 'started' | 'version' | 'name' | 'unknown' | 'ended' | 'too-large' | 'bad-image';
 export type EndReason = 'host-left' | 'finished';
 /** 학생 한 명의 이번 차례 칸. 이 학생 몫만 — 다른 체인·원 제시어 없음(0단계 첫 사람 제외). */
 export type Turn = { step: number; kind: 'draw' | 'guess'; chainIdx: number; input: Input; deadlineAt: number | null };

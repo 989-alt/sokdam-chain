@@ -30,7 +30,8 @@ export type ClientView = {
   /** 지금 내 칸(이 학생 몫만). deadlineAt 은 방장 시계 — 남은 시간은 remainingMs(). */
   cell: Turn | null;
   submitted: boolean;
-  submitError: 'too-large' | null;
+  /** 방장이 그림을 못 받음 — submitted 가 false 로 돌아오니 다시 내보내 submitDrawing. */
+  submitError: 'too-large' | 'bad-image' | null;
   waiting: { submitted: number; total: number } | null;
   pages: ReviewPage[];
   /** 방장이 보낸 현재 장. 학생 쪽에서 바꾸지 않는다. */
@@ -83,7 +84,11 @@ export class ClientSession {
 
   private images = new Map<string, Blob>();
   private assembler = new Assembler((id, b64) => {
-    this.images.set(id, base64ToBlob(b64));
+    try {
+      this.images.set(id, base64ToBlob(b64));
+    } catch {
+      return; // 깨진 base64 — 그림 없이 진행
+    }
     this.emit();
   });
   private offsets: number[] = [];
@@ -91,6 +96,8 @@ export class ClientSession {
   private silence: ReturnType<typeof setInterval>;
   private autoTimer: ReturnType<typeof setTimeout> | undefined;
   private pending: ((r: JoinResult) => void) | null = null;
+  /** rejoin 은 joined 가 아니라 첫 sync 에서 끝난다(대기실이 잠깐 비치지 않게). */
+  private rejoining = false;
   private disposed = false;
   private subs = new Set<(v: ClientView) => void>();
   private now: () => number;
@@ -134,6 +141,7 @@ export class ClientSession {
   }
 
   rejoin(): Promise<JoinResult> {
+    this.rejoining = true;
     return this.ask({ t: 'rejoin', pid: this.o.pid });
   }
 
@@ -193,10 +201,14 @@ export class ClientSession {
     switch (m.t) {
       case 'joined':
         if (this.o.persist) saveSession({ ...this.o.persist, pid: this.o.pid }, this.now());
+        if (this.rejoining) return this.set({ slot: m.slot, settings: m.settings });
         this.set({ slot: m.slot, settings: m.settings, phase: this.view.phase === 'connecting' ? 'lobby' : this.view.phase });
         return this.settle({ ok: true });
       case 'rejected':
-        if (m.reason === 'too-large') return this.set({ submitted: false, submitError: 'too-large' });
+        if (m.reason === 'too-large' || m.reason === 'bad-image') {
+          if (this.view.phase === 'play' && this.view.cell?.kind === 'draw') this.set({ submitted: false, submitError: m.reason });
+          return;
+        }
         if (this.o.persist && (m.reason === 'unknown' || m.reason === 'ended')) clearSession();
         this.settle({ ok: false, reason: m.reason });
         this.set({ phase: 'ended', ended: null });
@@ -233,6 +245,7 @@ export class ClientSession {
       case 'sync':
         this.sample(m.hostNow);
         this.applySync(m.state);
+        this.rejoining = false;
         return this.settle({ ok: true });
       case 'chunk':
         return this.assembler.add(m);

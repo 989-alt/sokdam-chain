@@ -557,3 +557,105 @@ describe('방장 종료', () => {
     expect(all[1]!.view.ended).toBe('finished');
   });
 });
+
+describe('리뷰 수정 1차', () => {
+  async function rawFourth() {
+    const r = await room(3);
+    const s = await raw(r.net, r.host.code);
+    const pid = randomId();
+    s.send({ t: 'join', pid, name: '넷째' });
+    await flush();
+    r.host.start();
+    await flush();
+    const step = s.got.find((m) => m.t === 'step');
+    return { ...r, s, pid, step };
+  }
+  const b64png = btoa(String.fromCharCode(0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4, 5, 6));
+
+  it('업로드 중 끊겨 재접속하면 옛 조립을 버리고 다시 제출해 done', async () => {
+    const { net, host, s, pid } = await rawFourth();
+    s.send({ t: 'submit-draw', chainIdx: 3, step: 0, imgId: 'old', mime: 'image/png', bytes: 10 });
+    s.send({ t: 'chunk', imgId: 'old', idx: 0, total: 2, data: b64png.slice(0, 4) });
+    await flush();
+    expect((host as any).incoming.size).toBe(1);
+    net.cut(s.ep.id);
+    await flush();
+    const phases: string[] = [];
+    const ep = await net.open(randomId());
+    const cp = ep.connect(hostPeerId(host.code));
+    await flush();
+    const c = new ClientSession(await cp, { pid });
+    c.subscribe((v) => phases.push(v.phase));
+    const rr = c.rejoin();
+    await flush();
+    expect(await rr).toEqual({ ok: true });
+    expect(phases).not.toContain('lobby'); // 게임 중 재접속은 대기실을 거치지 않는다
+    expect(c.view.phase).toBe('play');
+    expect((host as any).incoming.size).toBe(0);
+    expect(c.view.submitted).toBe(false);
+    await c.submitDrawing(png());
+    await flush(20);
+    expect(host.view.submitted).toBe(1);
+    expect((host as any).game.chains[3].entries[0].status).toBe('done');
+    host.leave();
+  });
+
+  it('그림이 아니면 bad-image 로 알리고 학생은 다시 제출할 수 있다', async () => {
+    const { host, all } = await room(4);
+    host.start();
+    await flush();
+    await all[1]!.submitDrawing(new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'image/png' }));
+    await flush(20);
+    expect(all[1]!.view.submitError).toBe('bad-image');
+    expect(all[1]!.view.submitted).toBe(false);
+    expect((host as any).incoming.size).toBe(0);
+    await all[1]!.submitDrawing(png());
+    await flush(20);
+    expect(host.view.submitted).toBe(1);
+    host.leave();
+  });
+
+  it('조각이 안 오거나 깨진 조각뿐이면 10초 뒤 bad-image, 받는 중 목록 비움', async () => {
+    const { host, s, step } = await rawFourth();
+    s.send({ t: 'submit-draw', chainIdx: step.chainIdx, step: 0, imgId: 'x1', mime: 'image/png', bytes: 10 });
+    s.send({ t: 'chunk', imgId: 'x1', idx: 0, total: 1, data: '!!not-base64!!' });
+    await flush(9900);
+    expect(s.got.some((m) => m.t === 'rejected')).toBe(false);
+    await flush(200);
+    expect(s.got.filter((m) => m.t === 'rejected').at(-1)).toMatchObject({ reason: 'bad-image' });
+    expect((host as any).incoming.size).toBe(0);
+    host.leave();
+  });
+
+  it('같은 칸 두 번째 헤더는 앞 조립을 갈아탄다(말없이 버리지 않음)', async () => {
+    const { host, s, step } = await rawFourth();
+    s.send({ t: 'submit-draw', chainIdx: step.chainIdx, step: 0, imgId: 'a', mime: 'image/png', bytes: 10 });
+    s.send({ t: 'submit-draw', chainIdx: step.chainIdx, step: 0, imgId: 'b', mime: 'image/png', bytes: 10 });
+    s.send({ t: 'chunk', imgId: 'b', idx: 0, total: 1, data: b64png });
+    await flush();
+    expect(host.view.submitted).toBe(1);
+    expect((host as any).incoming.size).toBe(0);
+    host.leave();
+  });
+
+  it('pid 32자 초과는 거부(조각 ID 상한 64자에 맞춤)', async () => {
+    const { net, host } = await room(1);
+    const s = await raw(net, host.code);
+    s.send({ t: 'join', pid: 'a'.repeat(33), name: '긴아이디' });
+    await flush();
+    expect(s.got.at(-1)).toMatchObject({ t: 'rejected', reason: 'name' });
+    host.leave();
+  });
+
+  it('pagehide/beforeunload 는 leave 에서 해제', async () => {
+    const add = vi.fn();
+    const remove = vi.fn();
+    vi.stubGlobal('window', { addEventListener: add, removeEventListener: remove });
+    const { host } = await room(1);
+    expect(add.mock.calls.map((c) => c[0]).sort()).toEqual(['beforeunload', 'pagehide']);
+    host.leave();
+    expect(remove.mock.calls.map((c) => c[0]).sort()).toEqual(['beforeunload', 'pagehide']);
+    expect(remove.mock.calls[0]![1]).toBe(add.mock.calls[0]![1]);
+    vi.unstubAllGlobals();
+  });
+});

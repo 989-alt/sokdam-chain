@@ -59,6 +59,12 @@ export class Assembler {
     this.onDone(c.imgId, Array.from({ length: p.total }, (_, i) => p.got.get(i)!).join(''));
   }
 
+  /** 조립 하나를 버린다(재접속·교체). */
+  drop(imgId: string): void {
+    clearTimeout(this.parts.get(imgId)?.timer);
+    this.parts.delete(imgId);
+  }
+
   /** 진행 중인 조립을 모두 버린다(한 판 더·종료). */
   clear(): void {
     for (const p of this.parts.values()) clearTimeout(p.timer);
@@ -79,6 +85,7 @@ const isChunk = (c: unknown): c is Chunk => {
     x.idx >= 0 &&
     x.idx < x.total &&
     typeof x.data === 'string' &&
-    x.data.length <= CHUNK_CHARS
+    x.data.length <= CHUNK_CHARS &&
+    /^[A-Za-z0-9+/]*={0,2}$/.test(x.data)
   );
 };
