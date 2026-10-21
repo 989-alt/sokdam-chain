@@ -56,7 +56,7 @@ export function VoteScreen(p: VoteScreenProps) {
       {body}
       {x.enabled && (
         <span class="slot" style={`--sx: ${sx}; --sy: 0`}>
-          <img src={sticker} alt={picked === x.key ? '스티커' : ''} />
+          <img src={sticker} alt="" />
         </span>
       )}
     </button>
@@ -77,7 +77,7 @@ export function VoteScreen(p: VoteScreenProps) {
           </h2>
           {items.drawings.length ? (
             <div class="vote-grid" role="group" aria-label="베스트 그림 후보">
-              {items.drawings.map((x) => cand(x, drawing, setDrawing, 0, <Picture blob={x.entry.imgId ? p.image(x.entry.imgId) : null} alt={by(x, '그림')} />, '그림'))}
+              {items.drawings.map((x) => cand(x, drawing, setDrawing, 0, <Picture blob={x.entry.imgId ? p.image(x.entry.imgId) : null} alt="" />, '그림'))}
             </div>
           ) : (
             <p class="vote-none">고를 그림이 없어요</p>

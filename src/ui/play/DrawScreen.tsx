@@ -135,6 +135,10 @@ export function DrawScreen(p: DrawScreenProps) {
             </div>
           </div>
           <DrawingCanvas drawing={drawing} disabled={busy} />
+          {/* role=timer 는 aria-live off — 10초 진입을 한 번만 읽어 준다 */}
+          <p class="sr" aria-live="polite">
+            {r.current.warned ? '10초 남았어요' : ''}
+          </p>
           <button type="button" class="submit press" disabled={busy} aria-busy={busy} onClick={() => void send()}>
             <Icon name="send" size="lg" />
             <span>{busy ? '보내는 중이에요' : '다 그렸어요'}</span>

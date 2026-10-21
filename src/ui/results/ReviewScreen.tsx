@@ -90,6 +90,10 @@ export function ReviewScreen(p: ReviewScreenProps) {
         <MuteToggle />
       </header>
 
+      {/* 장이 바뀔 때마다 쪽 머리를 한 번 읽어 준다(카드 포함 — 카드엔 who 줄이 없어 화면 밖 한 줄로) */}
+      <p class="sr" aria-live="polite">
+        {label}
+      </p>
       <div class="spread">
         {page.kind === 'card' ? (
           <article class={`meaning ${turn}`} aria-label={label}>
