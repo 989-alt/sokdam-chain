@@ -21,11 +21,22 @@ describe('Drawing', () => {
     expect(d.visible()[0]!.points).toEqual([0, 0, 5, 5]);
   });
 
-  it('a new primary pointer closes a stroke whose pointerup was lost', () => {
+  it('a palm (touch primary) while a pen draws is ignored', () => {
     const d = new Drawing();
-    d.down(1, 0, 0, true);
-    expect(d.down(2, 9, 9, false)).toBe(false); // second finger still ignored
-    expect(d.down(3, 5, 5, true)).toBe(true);
+    d.down(1, 0, 0, true, 'pen');
+    expect(d.down(2, 50, 50, true, 'touch')).toBe(false);
+    expect(d.move(1, 5, 5)).toBe(true);
+    d.up(2);
+    d.up(1);
+    expect(d.visible()).toHaveLength(1);
+    expect(d.visible()[0]!.points).toEqual([0, 0, 5, 5]);
+  });
+
+  it('a new same-type primary pointer closes a stroke whose pointerup was lost', () => {
+    const d = new Drawing();
+    d.down(1, 0, 0, true, 'touch');
+    expect(d.down(2, 9, 9, false, 'touch')).toBe(false); // second finger still ignored
+    expect(d.down(3, 5, 5, true, 'touch')).toBe(true);
     d.up(3);
     expect(d.visible()).toHaveLength(2);
     expect(d.activeId).toBeNull();

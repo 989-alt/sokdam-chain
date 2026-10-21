@@ -53,12 +53,13 @@ export function DrawingCanvas({ drawing, disabled = false }: Props) {
   const onDown = (e: PointerEvent) => {
     e.preventDefault();
     const c = canvasRef.current!;
-    if (c.getBoundingClientRect().width === 0) return; // avoid NaN points
+    const r = c.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return; // avoid NaN points
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     // set here, not in an effect: effects run after a frame and a fast tap would get the old tool
     if (eraser) drawing.setTool(ERASER.color, ERASER.px);
     else drawing.setTool(PEN_COLORS[colorIdx]!.hex, PEN_WIDTHS[widthIdx]!.px);
-    if (!drawing.down(e.pointerId, ...toModel(e), e.isPrimary)) return;
+    if (!drawing.down(e.pointerId, ...toModel(e), e.isPrimary, e.pointerType)) return;
     try {
       c.setPointerCapture(e.pointerId);
     } catch {

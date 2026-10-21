@@ -226,7 +226,7 @@ test('lost pointerup or right-click never leaves the canvas stuck', async ({ pag
   await open(page);
   const p = await at(page, 0.3, 0.3);
   // a primary pointer that goes down and never comes up (capture also throws for this fake id)
-  await page.locator('canvas').dispatchEvent('pointerdown', { pointerId: 77, isPrimary: true, pointerType: 'touch', clientX: p.x, clientY: p.y, button: 0 });
+  await page.locator('canvas').dispatchEvent('pointerdown', { pointerId: 77, isPrimary: true, pointerType: 'mouse', clientX: p.x, clientY: p.y, button: 0 });
   // right button: ignored, no stroke, and no context menu default
   await page.mouse.move(p.x + 50, p.y + 50);
   await page.mouse.down({ button: 'right' });

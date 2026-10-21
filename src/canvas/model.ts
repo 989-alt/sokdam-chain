@@ -13,6 +13,7 @@ export class Drawing {
   floor = 0;
   active: Stroke | null = null;
   activeId: number | null = null;
+  activeType = '';
   color: string = PEN_COLORS[DEFAULT_COLOR].hex;
   width: number = PEN_WIDTHS[DEFAULT_WIDTH].px;
   disabled = false;
@@ -24,13 +25,15 @@ export class Drawing {
 
   /**
    * Only the first pointer draws; later pointers (second finger, palm) are ignored.
-   * A new primary pointer means the old one's pointerup was lost: close it instead of staying stuck.
+   * A new primary pointer of the same type means the old one's pointerup was lost: close it
+   * instead of staying stuck. A different type (palm touch while a pen draws) is ignored.
    */
-  down(id: number, x: number, y: number, primary = false): boolean {
+  down(id: number, x: number, y: number, primary = false, type = ''): boolean {
     if (this.disabled) return false;
-    if (primary && this.activeId !== null) this.finish();
+    if (primary && this.activeId !== null && type === this.activeType) this.finish();
     if (this.activeId !== null) return false;
     this.activeId = id;
+    this.activeType = type;
     this.active = { color: this.color, width: this.width, points: [x, y] };
     return true;
   }
