@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { deflateSync, strFromU8 } from 'fflate';
 import { validateWords } from '../data/schema';
 import words from '../data/words.json';
-import { buildLink, copyText, decodeList, encodeList, HASH_MAX, parseLines, PREFIX, toWords, type ListItem } from './list';
+import { buildLink, copyText, decodeFailMessage, decodeList, ITEMS_MAX, encodeList, HASH_MAX, parseLines, PREFIX, toWords, type ListItem } from './list';
 
 const b64url = (bytes: Uint8Array) => btoa(strFromU8(bytes, true)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const raw = (s: string) => PREFIX + b64url(deflateSync(new TextEncoder().encode(s)));
@@ -121,6 +121,26 @@ describe('잘못된 링크', () => {
     ['mode 잘못됨', raw('{"v":1,"mode":"x","items":[{"t":"a","m":"b"}]}'), 'version'],
   ])('%s', (_, hash, reason) => {
     expect(decodeList(hash)).toEqual({ ok: false, reason });
+  });
+});
+
+describe('크기 방어', () => {
+  it('해시가 6,000자 넘으면 toolong', () => {
+    expect(decodeList(PREFIX + 'A'.repeat(HASH_MAX + 1))).toEqual({ ok: false, reason: 'toolong' });
+  });
+  it("압축 폭탄(4MB 'a', 해시 6,000자 안) 은 고정 버퍼로 막고 toolong", () => {
+    const bomb = PREFIX + b64url(deflateSync(new Uint8Array(4e6).fill(97), { level: 9 }));
+    expect(bomb.length).toBeLessThanOrEqual(HASH_MAX);
+    expect(decodeList(bomb)).toEqual({ ok: false, reason: 'toolong' });
+  });
+  it('항목 300개 초과는 복원 거부, 인코딩도 300 이하로 안내', () => {
+    const many = Array.from({ length: ITEMS_MAX + 1 }, (_, i) => ({ t: `${i}`, m: 'b' }));
+    expect(decodeList(raw(JSON.stringify({ v: 1, mode: 'add', items: many })))).toEqual({ ok: false, reason: 'items' });
+    const r = encodeList('add', many.map((x) => ({ ...x, e: '' })));
+    expect(r).toEqual({ ok: false, maxItems: ITEMS_MAX });
+  });
+  it('실패 문구 하나', () => {
+    expect(decodeFailMessage('inflate')).toContain('기본 목록');
   });
 });
 

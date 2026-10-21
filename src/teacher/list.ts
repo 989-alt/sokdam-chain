@@ -19,6 +19,8 @@ export const PREFIX = '#l=';
 export const HASH_MAX = 6000; // 브라우저·클래스룸 링크 안전선
 export const HASH_QR = 1500; // QR 하나에 무리 없는 길이
 export const MAX = { t: 30, m: 60, e: 80 } as const; // words 스키마·카드 한 화면과 같다
+export const ITEMS_MAX = 300; // 링크 하나에 담는 항목 상한(복원 쪽 방어와 같다)
+const INFLATE_MAX = 256 * 1024; // 300개 × 최대 항목(UTF-8 ≈ 540B) ≈ 160KB 보다 넉넉히
 
 /** 한 줄 '속담 | 뜻 | 예문'. 첫 두 '|' 로만 나눈다. 줄 번호는 빈 줄 포함 1부터. 같은 속담은 먼저 것만 남긴다. */
 export function parseLines(text: string): { items: ListItem[]; errors: LineError[] } {
@@ -80,19 +82,21 @@ export type EncodeResult =
 
 /** {v:1, mode, items} → UTF-8 → deflateRaw → base64url → '#l=…'. 6,000자 넘으면 실패와 담을 수 있는 개수. */
 export function encodeList(mode: ListMode, items: ListItem[]): EncodeResult {
+  if (items.length > ITEMS_MAX) return { ok: false, maxItems: fitCount(mode, items.slice(0, ITEMS_MAX), HASH_MAX) };
   const hash = toHash(mode, items);
   if (hash.length > HASH_MAX) return { ok: false, maxItems: fitCount(mode, items, HASH_MAX) };
   if (hash.length > HASH_QR) return { ok: true, hash, warning: `QR 로 나눠 주려면 ${fitCount(mode, items, HASH_QR)}개 이하가 좋아요` };
   return { ok: true, hash };
 }
 
-export type DecodeFail = 'missing' | 'base64' | 'inflate' | 'json' | 'version' | 'items';
+export type DecodeFail = 'missing' | 'base64' | 'inflate' | 'json' | 'version' | 'items' | 'toolong';
 export type DecodeResult = { ok: true; mode: ListMode; items: ListItem[] } | { ok: false; reason: DecodeFail };
 
 /** location.hash('#l=…') → 목록. 링크는 누구나 만들 수 있으니 항목을 다시 검증한다. '=' 패딩 유무 모두 허용. */
 export function decodeList(hash: string): DecodeResult {
   if (!hash.startsWith(PREFIX)) return { ok: false, reason: 'missing' };
   const s = hash.slice(PREFIX.length);
+  if (s.length > HASH_MAX) return { ok: false, reason: 'toolong' };
   if (!/^[A-Za-z0-9_-]+={0,2}$/.test(s)) return { ok: false, reason: 'base64' };
   let bin: string;
   try {
@@ -102,10 +106,12 @@ export function decodeList(hash: string): DecodeResult {
   }
   let bytes: Uint8Array;
   try {
-    bytes = inflateSync(strToU8(bin, true));
+    // 고정 버퍼: fflate 0.8.3 은 넘치면 throw 하지 않고 잘라 버퍼 길이를 돌려준다 → 꽉 차면 폭탄으로 본다.
+    bytes = inflateSync(strToU8(bin, true), { out: new Uint8Array(INFLATE_MAX + 1) });
   } catch {
     return { ok: false, reason: 'inflate' };
   }
+  if (bytes.length > INFLATE_MAX) return { ok: false, reason: 'toolong' };
   let p: unknown;
   try {
     p = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -115,7 +121,7 @@ export function decodeList(hash: string): DecodeResult {
   if (typeof p !== 'object' || p === null) return { ok: false, reason: 'json' };
   const o = p as Record<string, unknown>;
   if (o.v !== 1 || (o.mode !== 'add' && o.mode !== 'only')) return { ok: false, reason: 'version' };
-  if (!Array.isArray(o.items) || o.items.length === 0) return { ok: false, reason: 'items' };
+  if (!Array.isArray(o.items) || o.items.length === 0 || o.items.length > ITEMS_MAX) return { ok: false, reason: 'items' };
   const items: ListItem[] = [];
   const seen = new Set<string>();
   for (const x of o.items as unknown[]) {
@@ -128,6 +134,11 @@ export function decodeList(hash: string): DecodeResult {
     items.push(it);
   }
   return { ok: true, mode: o.mode, items };
+}
+
+/** 복원 실패 시 T05 가 보여 줄 문구 하나. 'missing'(링크에 목록 없음)은 실패가 아니라 보여 주지 않는다. */
+export function decodeFailMessage(_reason: DecodeFail): string {
+  return '선생님 링크가 잘못됐거나 깨졌어요. 기본 목록으로 할게요.';
 }
 
 /** 공유 링크 = origin + pathname(base 포함) + '#l=…'. 쿼리·기존 해시는 버린다. */

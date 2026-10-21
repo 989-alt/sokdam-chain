@@ -58,26 +58,27 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
 
         <fieldset>
           <legend>어떻게 쓸까요</legend>
-          <div class="opts" role="radiogroup" aria-label="목록 쓰는 방법">
+          <div class="opts">
             {(
               [
                 ['add', '기본 목록에 더하기'],
                 ['only', '이 목록만'],
               ] as const
             ).map(([v, label]) => (
-              <button
-                key={v}
-                type="button"
-                role="radio"
-                aria-checked={mode === v}
-                class="opt press"
-                onClick={() => {
-                  setMode(v);
-                  setCopy('idle');
-                }}
-              >
+              <label key={v} class={mode === v ? 'opt press is-checked' : 'opt press'}>
+                <input
+                  type="radio"
+                  name="teacher-mode"
+                  value={v}
+                  class="sr"
+                  checked={mode === v}
+                  onChange={() => {
+                    setMode(v);
+                    setCopy('idle');
+                  }}
+                />
                 {label}
-              </button>
+              </label>
             ))}
           </div>
           <div class="help">"이 목록만"이면 방 만들기에서 수준을 고르지 않아요</div>
@@ -109,7 +110,7 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
           {errors.length > 0 && <div class="help">고칠 줄은 링크에 들어가지 않아요</div>}
           {enc && !enc.ok && (
             <p class="teacher-alert" role="alert">
-              {enc.maxItems}개까지만 담을 수 있어요
+              {enc.maxItems}개까지만 담을 수 있어요. 줄을 지우거나 뜻·예문을 짧게 줄여 주세요.
             </p>
           )}
           {enc?.ok && (
