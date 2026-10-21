@@ -28,15 +28,13 @@ async function join(page: Page, code: string, name: string) {
 
 const seats = (page: Page) => page.locator('.desk li:not(.empty)');
 
-test('home: mode choice, mute toggle, teacher link small', async ({ page }) => {
+test('home: mode choice, no mute toggle without sfx files, teacher link small', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '여럿이 각자 기기로' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '기기 한 대 돌려쓰기' })).toBeVisible();
   await expect(page.getByText('이어하기')).toHaveCount(0);
-  const mute = page.locator('button.mute');
-  await expect(mute).toHaveAttribute('aria-pressed', 'false');
-  await mute.click();
-  await expect(mute).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.topbar')).toBeVisible();
+  await expect(page.locator('button.mute')).toHaveCount(0); // 효과음 파일 0개 빌드 — 음소거 토글 숨김(T11 M3)
   await page.getByRole('link', { name: '돌려쓰기 시작' }).click();
   await expect(page).toHaveURL(/#\/pass$/);
   await page.goto('/');

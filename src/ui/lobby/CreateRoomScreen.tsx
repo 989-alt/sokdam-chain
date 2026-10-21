@@ -6,6 +6,7 @@ import type { Settings } from '../../net/protocol';
 import { Icon } from '../shared/Icon';
 import { nameToSend } from '../shared/input';
 import { createFailMessage } from '../shared/messages';
+import { HAS_SFX } from '../shared/sound';
 import { Topbar } from '../shared/Topbar';
 import { DEFAULT_SETTINGS, DRAW_SECONDS, LEVELS, REVIEW_SECONDS } from './labels';
 import { NameField } from './NameField';
@@ -124,18 +125,20 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
             </Opt>
           </div>
         </fieldset>
-        <fieldset>
-          <legend>소리</legend>
-          <div class="opts" role="group" aria-label="소리">
-            <Opt on={s.sound} onClick={() => set({ sound: true })}>
-              켜기
-            </Opt>
-            <Opt on={!s.sound} onClick={() => set({ sound: false })}>
-              끄기
-            </Opt>
-          </div>
-          <div class="help">방 전체 설정이에요 · 내 기기만 끄려면 위의 소리 단추를 눌러요</div>
-        </fieldset>
+        {HAS_SFX && (
+          <fieldset>
+            <legend>소리</legend>
+            <div class="opts" role="group" aria-label="소리">
+              <Opt on={s.sound} onClick={() => set({ sound: true })}>
+                켜기
+              </Opt>
+              <Opt on={!s.sound} onClick={() => set({ sound: false })}>
+                끄기
+              </Opt>
+            </div>
+            <div class="help">방 전체 설정이에요 · 내 기기만 끄려면 위의 소리 단추를 눌러요</div>
+          </fieldset>
+        )}
         <div class="form-foot">
           <button type="button" class="btn secondary press" disabled={busy} onClick={onBack}>
             <Icon name="chevron-left" />

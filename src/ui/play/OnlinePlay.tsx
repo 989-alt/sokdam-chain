@@ -23,11 +23,20 @@ export function OnlinePlay() {
   const nameOf = (slot: number) => players.find((x) => x.slot === slot)?.name ?? '';
   const image = (id: string) => room.client.image(id);
   const me = players.find((x) => x.slot === view.slot);
-  const meChip = me && (
-    <span class="chip player">
-      <i class={me.connected ? '' : 'off'} aria-hidden="true" />
-      {me.name}
-    </span>
+  const meChip = (
+    <>
+      {view.reconnecting && (
+        <span class="chip" role="status">
+          다시 연결하는 중
+        </span>
+      )}
+      {me && (
+        <span class="chip player">
+          <i class={me.connected && !view.reconnecting ? '' : 'off'} aria-hidden="true" />
+          {me.name}
+        </span>
+      )}
+    </>
   );
   const waitList = players.map((x) => ({ name: x.name, connected: x.connected }));
   const settings = view.settings;
@@ -47,7 +56,7 @@ export function OnlinePlay() {
     const chips = (
       <>
         <span class="chip book-tag" style={`background: var(--color-book-cover-${(cell.chainIdx % 6) + 1})`}>
-          {nameOf(cell.chainIdx)}의 책{' '}
+          {nameOf(cell.chainIdx)}의 스케치북{' '}
           <small>
             {cell.step + 1} / {stepCount(n)}쪽
           </small>
@@ -68,6 +77,7 @@ export function OnlinePlay() {
           submitted={view.submitted}
           error={view.submitError}
           onSubmit={(b) => void room.client.submitDrawing(b)}
+          offline={view.reconnecting}
           sound={sound}
           chips={chips}
           waiting={waiting}
@@ -80,6 +90,7 @@ export function OnlinePlay() {
         image={image}
         submitted={view.submitted}
         onSubmit={(t) => room.client.submitGuess(t)}
+        offline={view.reconnecting}
         sound={sound}
         chips={chips}
         waiting={waiting}

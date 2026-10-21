@@ -16,6 +16,8 @@ export type GuessScreenProps = {
   submitted: boolean;
   /** 앞뒤 공백을 뗀 답(빈 문자열 = 답 없음). 한 번만 부른다. */
   onSubmit: (text: string) => void;
+  /** 다시 연결하는 중 — 입력·제출을 잠근다. */
+  offline?: boolean;
   sound: (s: Sfx) => void;
   chips?: ComponentChildren;
   waiting?: ComponentChildren;
@@ -29,7 +31,7 @@ export function GuessScreen(p: GuessScreenProps) {
 
   const submit = (e: Event) => {
     e.preventDefault();
-    if (done) return;
+    if (done || p.offline) return;
     if (guessAction(text, confirming) === 'confirm') return setConfirming(true);
     setSent(true);
     p.sound('submit');
@@ -80,6 +82,7 @@ export function GuessScreen(p: GuessScreenProps) {
                   }}
                   aria-describedby="answer-help"
                   autocomplete="off"
+                  disabled={p.offline}
                   enterkeyhint="send"
                 />
                 <div class="help" id="answer-help">
@@ -91,7 +94,7 @@ export function GuessScreen(p: GuessScreenProps) {
                   </span>
                 </div>
               </div>
-              <button type="submit" class="submit press">
+              <button type="submit" class="submit press" disabled={p.offline}>
                 <Icon name="send" size="lg" />
                 <span>{confirming ? '네, 비워 두고 넘어가요' : '답 보내기'}</span>
               </button>

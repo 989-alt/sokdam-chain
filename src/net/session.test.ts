@@ -292,6 +292,27 @@ describe('끊김 감지', () => {
     host.leave();
   });
 
+  it('다시 붙는 중 제출은 닫힌 연결로 보내지 않고 미뤘다가 재합류 sync 뒤 보낸다(같은 칸 cell 은 그대로)', async () => {
+    const { net, host, all } = await room(4);
+    host.start();
+    await flush();
+    const c = all[1]!;
+    const cell = c.view.cell;
+    net.cut((c as any).conn.local);
+    expect(c.view.reconnecting).toBe(true);
+    const sent = vi.spyOn((c as any).conn, 'send');
+    await c.submitDrawing(png());
+    expect(sent).not.toHaveBeenCalled();
+    expect(c.view.submitted).toBe(false);
+    await flush(20);
+    expect(c.view.reconnecting).toBe(false);
+    expect(c.view.cell).toBe(cell); // 화면이 다시 마운트되지 않는다
+    expect(c.view.submitted).toBe(true);
+    expect(host.view.submitted).toBe(1);
+    expect((host as any).game.chains[c.view.cell!.chainIdx].entries[0].status).toBe('done');
+    host.leave();
+  });
+
   it('방장 망 끊김·잠듦(등록은 남고 응답 없음) → 확인(6초)·다시 붙기(15초) 두 번 unreachable 이면 24~28초에 host-left', async () => {
     for (const offset of [0, 500, 999]) {
       const { net, host, all } = await room(3);
@@ -715,6 +736,61 @@ describe('결과·투표·한 판 더', () => {
   });
 });
 
+describe('메시지 크기', () => {
+  it('6명·이모지 이름 20자·이모지 답 40자(넘게 보내도 잘림)·카드 최대에서 sync·review-preload < 16300B', async () => {
+    const E = '😀'; // UTF-8 4B — 가장 무거운 글자
+    const pool: Word[] = Array.from({ length: 12 }, (_, i) => ({
+      id: `w${i}`,
+      text: `${E.repeat(28)}${String(i).padStart(2, '0')}`,
+      meaning: E.repeat(60),
+      example: E.repeat(80),
+      level: 'e34',
+    }));
+    const name = (i: number) => `${E.repeat(19)}${i}`;
+    const net = createLoopback();
+    const hp = createHost({ network: net, settings: { ...BASE, mode: 'B', review: 'manual' }, pool, hostName: name(0), rng: mulberry32(7) });
+    await flush();
+    const hr = await hp;
+    if (!hr.ok) throw new Error(hr.reason);
+    const { host } = hr;
+    const got = new Map<ClientSession, any[]>();
+    record(hr.me, got);
+    const all = [hr.me];
+    for (let i = 1; i < 6; i++) {
+      const j = joinRoom({ network: net, code: host.code, name: name(i) });
+      await flush();
+      const jr = await j;
+      if (!jr.ok) throw new Error(jr.reason);
+      record(jr.client, got);
+      all.push(jr.client);
+    }
+    host.start();
+    await flush();
+    for (let st = 0; st < 6; st++) {
+      for (const c of all) {
+        if (c.view.cell?.kind === 'draw') await c.submitDrawing(png());
+        else if (c.view.cell) c.submitGuess(E.repeat(50));
+      }
+      await flush(20);
+    }
+    expect(host.view.phase).toBe('review');
+    for (let k = 0; k < host.view.pageCount; k++) host.next(); // 투표로
+    await flush();
+    for (const c of all) c.vote(null, null);
+    await flush();
+    expect(host.view.phase).toBe('vote-result');
+    for (const p of (host as any).players) (host as any).sendSync(p); // 가장 큰 sync — 전체 장·후보·결과
+    await flush();
+    const bytes = (m: unknown) => new TextEncoder().encode(JSON.stringify(m)).length;
+    const big = [...got.values()].flat().filter((m) => m.t === 'sync' || m.t === 'review-preload');
+    expect(big.some((m) => m.t === 'sync' && m.state.pages.length === 6 * 8)).toBe(true);
+    const guess = (host as any).game.chains[0].entries.find((e: any) => e.kind === 'guess');
+    expect([...guess.text]).toHaveLength(40);
+    expect(Math.max(...big.map(bytes))).toBeLessThan(16300);
+    host.leave();
+  });
+});
+
 describe('방장 종료', () => {
   it('leave 면 학생이 ended host-left 받고 정리', async () => {
     const { host, all } = await room(3);
@@ -810,6 +886,36 @@ describe('리뷰 수정 1차', () => {
     s.send({ t: 'chunk', imgId: 'b', idx: 0, total: 1, data: b64png });
     await flush();
     expect(host.view.submitted).toBe(1);
+    expect((host as any).incoming.size).toBe(0);
+    host.leave();
+  });
+
+  it('기한+유예 직전 헤더, 직후 마지막 조각 → done 으로 제출되고 다음 단계', async () => {
+    const { host, s, step } = await rawFourth();
+    await flush(60000 + 2900);
+    s.send({ t: 'submit-draw', chainIdx: step.chainIdx, step: 0, imgId: 'late', mime: 'image/png', bytes: 10 });
+    s.send({ t: 'chunk', imgId: 'late', idx: 0, total: 2, data: b64png.slice(0, 8) });
+    await flush(300); // 유예 끝남 — 받는 중인 칸만 남는다
+    expect(host.view.step).toBe(0);
+    s.send({ t: 'chunk', imgId: 'late', idx: 1, total: 2, data: b64png.slice(8) });
+    await flush();
+    const g = (host as any).game;
+    expect(g.chains[step.chainIdx].entries[0].status).toBe('done');
+    expect(host.view.step).toBe(1);
+    expect(s.got.some((m) => m.t === 'rejected')).toBe(false);
+    host.leave();
+  });
+
+  it('기한+유예 직전 헤더 뒤 조각이 끊기면 조립 상한(10초) 뒤 missing 으로 진행', async () => {
+    const { host, s, step } = await rawFourth();
+    await flush(60000 + 2900);
+    s.send({ t: 'submit-draw', chainIdx: step.chainIdx, step: 0, imgId: 'cut', mime: 'image/png', bytes: 10 });
+    s.send({ t: 'chunk', imgId: 'cut', idx: 0, total: 2, data: b64png.slice(0, 8) });
+    await flush(9000);
+    expect(host.view.step).toBe(0);
+    await flush(1100);
+    expect((host as any).game.chains[step.chainIdx].entries[0].status).toBe('missing');
+    expect(host.view.step).toBe(1);
     expect((host as any).incoming.size).toBe(0);
     host.leave();
   });

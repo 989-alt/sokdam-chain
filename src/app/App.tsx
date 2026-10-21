@@ -5,7 +5,7 @@ import '../styles/app.css';
 import { CreateRoomScreen } from '../ui/lobby/CreateRoomScreen';
 import { HomeScreen } from '../ui/lobby/HomeScreen';
 import { JoinRoomScreen } from '../ui/lobby/JoinRoomScreen';
-import { joinFailMessage } from '../ui/shared/messages';
+import { joinFailMessage, resumeFailMessage } from '../ui/shared/messages';
 import { SoundProvider } from '../ui/shared/sound';
 import { TeacherListScreen } from '../ui/teacher/TeacherListScreen';
 import { createRoom, enterRoom, isRoom, resume, savedSession } from './connect';
@@ -56,7 +56,7 @@ export function App() {
       enter(r);
       return null;
     }
-    return joinFailMessage(r.reason);
+    return resumeFailMessage(r.reason);
   };
   const home = () => {
     room?.host?.leave();

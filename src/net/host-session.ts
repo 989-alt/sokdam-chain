@@ -50,7 +50,7 @@ import {
 import type { Conn, Endpoint, Network } from './transport';
 
 export const MAX_NAME = 20; // 신뢰 경계 상한(계약에 값 없음 — 보고서 참조)
-export const MAX_ANSWER = 100;
+export const MAX_ANSWER = 40; // UI(ANSWER_MAX)와 같게 — 최악 sync·review-preload 가 PeerJS 한 메시지(16300B) 안에 든다
 const REGISTER_TRIES = 5;
 const FLUSH_MS = 200;
 
@@ -118,6 +118,8 @@ export class HostSession {
   private votes: Votes = {};
   private result: VoteResult | null = null;
   private drawTimer: ReturnType<typeof setTimeout> | undefined;
+  /** 그리기 기한+유예가 지남. 받는 중(incoming)인 칸만 조립 결과를 기다린다. */
+  private drawClosed = false;
   private reviewTimer: ReturnType<typeof setTimeout> | undefined;
   private absent = new Map<number, ReturnType<typeof setTimeout>>();
   private ping: ReturnType<typeof setInterval>;
@@ -373,6 +375,7 @@ export class HostSession {
     const g = this.game!;
     this.clearTurnTimers();
     this.turnStartedAt = this.now();
+    this.drawClosed = false;
     this.deadlineAt = kindOf(g.step) === 'draw' ? this.turnStartedAt + this.o.settings.drawSeconds * 1000 : null;
     if (this.deadlineAt !== null) this.drawTimer = setTimeout(() => this.onDrawDeadline(), this.deadlineAt + DRAW_GRACE_MS - this.now());
     const last = g.step === g.stepCount - 1;
@@ -385,8 +388,10 @@ export class HostSession {
   }
 
   private onDrawDeadline(): void {
+    this.drawClosed = true;
+    const receiving = new Set([...this.incoming.values()].map((x) => x.key));
     let g = this.game!;
-    for (const k of openKeys(g)) g = markMissing(g, k);
+    for (const k of openKeys(g)) if (!receiving.has(k)) g = markMissing(g, k);
     this.game = g;
     this.maybeAdvance();
     this.emit();
@@ -412,7 +417,7 @@ export class HostSession {
 
   private onDrawHeader(p: Player, m: Record<string, unknown>): void {
     const { chainIdx, step, imgId, mime, bytes } = m;
-    if (this.phase !== 'play' || !Number.isInteger(chainIdx) || !Number.isInteger(step)) return;
+    if (this.phase !== 'play' || this.drawClosed || !Number.isInteger(chainIdx) || !Number.isInteger(step)) return;
     if (typeof imgId !== 'string' || imgId.length < 1 || imgId.length > 31) return;
     const key = entryKey(chainIdx as number, step as number);
     const e = this.entry(key);
@@ -425,7 +430,10 @@ export class HostSession {
     this.incoming.set(scoped, { slot: p.slot, key, timer: setTimeout(() => this.dropIncoming(scoped, 'bad-image'), ASSEMBLE_MS) });
   }
 
-  /** 받는 중인 그림을 버린다. reason 이 있고 그 칸이 아직 열려 있으면 학생에게 알려 다시 제출하게 한다. */
+  /**
+   * 받는 중인 그림을 버린다. 칸이 아직 열려 있을 때: 기한이 지났으면 그림 없음으로 넘기고,
+   * 아니면 reason 이 있을 때 학생에게 알려 다시 제출하게 한다.
+   */
   private dropIncoming(scoped: string, reason?: RejectReason): void {
     const d = this.incoming.get(scoped);
     if (!d) return;
@@ -434,7 +442,11 @@ export class HostSession {
     this.assembler.drop(scoped);
     const p = this.players.find((x) => x.slot === d.slot);
     const e = this.entry(d.key);
-    if (reason && p?.conn && this.phase === 'play' && e?.status === 'pending' && openKeys(this.game!).includes(d.key)) this.reject(p.conn, reason);
+    const open = this.phase === 'play' && e?.status === 'pending' && openKeys(this.game!).includes(d.key);
+    if (open && this.drawClosed) {
+      this.game = markMissing(this.game!, d.key);
+      this.maybeAdvance();
+    } else if (open && reason && p?.conn) this.reject(p.conn, reason);
     this.emit();
   }
 
@@ -442,15 +454,16 @@ export class HostSession {
     const d = this.incoming.get(scoped);
     if (!d) return;
     const bad = !sniffMime(b64) ? 'bad-image' : (b64.length * 3) / 4 > MAX_IMG_BYTES + 3 ? 'too-large' : undefined;
-    this.dropIncoming(scoped, bad);
-    if (bad || this.phase !== 'play') return;
     const k = parseKey(d.key)!;
     const imgId = `r${this.round}-${k.chainIdx}-${k.step}`;
-    const r = applySubmission(this.game!, d.key, d.slot, { imgId });
-    if (!r.ok || r.ignored) return;
-    this.images.set(imgId, b64);
-    this.game = r.game;
-    this.maybeAdvance();
+    const r = bad || this.phase !== 'play' ? null : applySubmission(this.game!, d.key, d.slot, { imgId });
+    const took = !!r && r.ok && !r.ignored;
+    if (took) {
+      this.images.set(imgId, b64);
+      this.game = r.game;
+    }
+    this.dropIncoming(scoped, bad); // 칸을 채운 뒤에 버려야 기한 뒤 도착분이 그림 없음이 되지 않는다
+    if (took) this.maybeAdvance();
     this.emit();
   }
 

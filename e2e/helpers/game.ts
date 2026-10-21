@@ -55,7 +55,8 @@ export async function createRoom(page: Page, name: string, o: RoomOpts = {}): Pr
   if (o.drawSeconds) await opt(`${o.drawSeconds}초`);
   if (o.review === 'manual') await opt('방장이 넘김');
   else if (o.review) await opt(`${o.review}초 뒤 자동 넘김`);
-  await opt('끄기'); // 효과음 끔
+  const off = page.getByRole('button', { name: '끄기', exact: true });
+  if (await off.count()) await off.click(); // 효과음 끔(효과음 파일이 없으면 소리 설정 자체가 없다)
   await page.locator('#host-name').fill(name);
   await page.getByRole('button', { name: '방 만들기' }).click();
   const code = page.locator('.code');
@@ -104,7 +105,7 @@ export async function waitCell(page: Page, step: number, steps: number, timeout 
   const chip = page.locator('.screen .chip.book-tag');
   await expect(chip).toContainText(`${step + 1} / ${steps}쪽`, { timeout });
   await expect(page.locator(step % 2 ? '#answer' : '.screen-draw .book')).toBeVisible({ timeout });
-  return (await chip.textContent())!.split('의 책')[0]!.trim();
+  return (await chip.textContent())!.split('의 스케치북')[0]!.trim();
 }
 
 /** 그리기 제시 글(그림 제시면 null). */

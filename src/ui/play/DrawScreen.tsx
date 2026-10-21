@@ -30,6 +30,8 @@ export type DrawScreenProps = {
   /** 받는 쪽이 그림을 거부함(온라인 too-large·bad-image). submitted 가 false 로 돌아오면 2번까지 스스로 다시 보낸다. */
   error?: string | null;
   onSubmit: (blob: Blob) => void;
+  /** 다시 연결하는 중 — 캔버스·제출 버튼을 잠근다(기한 자동 제출은 그대로 — 받는 쪽이 재합류 뒤 보낸다). */
+  offline?: boolean;
   sound: (s: Sfx) => void;
   /** 상단 바 칩(책·이름 등). */
   chips?: ComponentChildren;
@@ -134,12 +136,12 @@ export function DrawScreen(p: DrawScreenProps) {
               </div>
             </div>
           </div>
-          <DrawingCanvas drawing={drawing} disabled={busy} />
+          <DrawingCanvas drawing={drawing} disabled={busy || !!p.offline} />
           {/* role=timer 는 aria-live off — 10초 진입을 한 번만 읽어 준다 */}
           <p class="sr" aria-live="polite">
             {r.current.warned ? '10초 남았어요' : ''}
           </p>
-          <button type="button" class="submit press" disabled={busy} aria-busy={busy} onClick={() => void send()}>
+          <button type="button" class="submit press" disabled={busy || !!p.offline} aria-busy={busy} onClick={() => void send()}>
             <Icon name="send" size="lg" />
             <span>{busy ? '보내는 중이에요' : '다 그렸어요'}</span>
             {!busy && p.nextName && <small>· {p.nextName}에게 넘겨요</small>}

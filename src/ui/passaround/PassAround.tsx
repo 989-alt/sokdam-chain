@@ -94,7 +94,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
     const chips = (
       <>
         <span class="chip book-tag" style={`background: var(--color-book-cover-${(c.chain.startSlot % 6) + 1})`}>
-          {nameOf(c.chain.startSlot)}의 책{' '}
+          {nameOf(c.chain.startSlot)}의 스케치북{' '}
           <small>
             {c.step + 1} / {stepCount(pass.names.length)}쪽
           </small>

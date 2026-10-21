@@ -24,6 +24,13 @@ export function joinFailMessage(reason: string): string {
   }
 }
 
+/** 이어하기 실패 — 코드를 쓴 적이 없으니 코드 확인 안내는 하지 않는다. */
+export function resumeFailMessage(reason: string): string {
+  if (reason === 'timeout') return '연결이 늦어요. 잠시 뒤 이어하기를 다시 눌러 주세요';
+  if (reason === 'no-room') return '이어할 게임이 없어요. 새로 들어가 주세요';
+  return joinFailMessage(reason);
+}
+
 /** 방 만들기 실패(시그널링 서버 장애 등) — PRD §8 복구 경로를 같이 안내한다. */
 export const createFailMessage = '지금은 연결할 수 없어요. 기기 한 대 돌려쓰기로 해 보세요';
 

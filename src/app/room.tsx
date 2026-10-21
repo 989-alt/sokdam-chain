@@ -31,10 +31,15 @@ export function useRoom(): RoomState {
   return r;
 }
 
-const START_FAIL: Record<string, string> = {
-  'player-count': '4명부터 시작할 수 있어요',
-  'not-enough-words': '문제가 모자라요. 다른 수준을 골라 주세요',
-};
+// 교사 전용 목록이면 수준이 상관없다(돌려쓰기 PassAround startFail 과 같은 규칙)
+export const startFail = (reason: string, teacherOnly: boolean): string =>
+  reason === 'player-count'
+    ? '4명부터 시작할 수 있어요'
+    : reason === 'not-enough-words'
+      ? teacherOnly
+        ? '선생님 목록의 제시어가 모자라 시작할 수 없어요. 목록을 늘려 주세요'
+        : '제시어가 모자라 시작할 수 없어요. 수준을 바꾸거나 선생님 목록을 확인해 주세요'
+      : '지금은 시작할 수 없어요';
 
 function Connecting() {
   return (
@@ -82,7 +87,7 @@ export function RoomRoute({ room, onHome, onResume }: { room: Room; onHome: () =
         startError={startError}
         onStart={() => {
           const r = room.host?.start();
-          setStartError(r && !r.ok ? (START_FAIL[r.reason] ?? '지금은 시작할 수 없어요') : null);
+          setStartError(r && !r.ok ? startFail(r.reason, view.settings?.listSource === 'teacher-only') : null);
         }}
         onLeave={leave}
       />

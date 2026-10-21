@@ -1,9 +1,7 @@
 // 효과음 4개(PRD §11). 파일은 assets/sfx/<이름>.<확장자> — 아직 없으면(에셋 보류) 조용히 건너뛴다.
-import { useSound } from '../shared/sound';
+import { SFX_FILES as FILES, useSound } from '../shared/sound';
 
 export type Sfx = 'submit' | 'warn' | 'turn' | 'result';
-
-const FILES = import.meta.glob('../../../assets/sfx/*.{mp3,m4a,ogg,wav,webm}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
 export function sfxUrl(name: Sfx, files: Record<string, string> = FILES): string | null {
   const k = Object.keys(files).find((p) => p.slice(p.lastIndexOf('/') + 1).startsWith(`${name}.`));

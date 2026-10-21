@@ -5,6 +5,7 @@ import { createHost } from '../net/host-session';
 import { joinRoom, resumeRoom } from '../net/client-session';
 import { peerNetwork } from '../net/peer-transport';
 import type { Settings } from '../net/protocol';
+import type { Network } from '../net/transport';
 import { loadSession } from '../storage/session';
 import { toWords } from '../teacher/list';
 import type { Room } from './room';
@@ -13,6 +14,8 @@ import type { TeacherList } from './teacher-state';
 const POOL = validateWords(words);
 const JOIN_TIMEOUT_MS = 8000; // 계약: 8초 안에 방장 연결이 안 되면 "방을 찾을 수 없어요"
 const CREATE_TIMEOUT_MS = 10000;
+/** 이어하기는 코드 확인이 아니라 다시 붙기 — 느린 ICE(전송 기본 15초)를 기다린다. */
+export const RESUME_TIMEOUT_MS = 20000;
 
 type Fail = { ok: false; reason: string };
 
@@ -49,9 +52,10 @@ export async function enterRoom(code: string, name: string): Promise<Room | Fail
   return r.ok && 'client' in r ? { client: r.client, host: null, code } : (r as Fail);
 }
 
-export async function resume(): Promise<Room | Fail> {
+export async function resume(network: Network = peerNetwork): Promise<Room | Fail> {
   const code = loadSession()?.roomCode ?? '';
-  const r = await timed(resumeRoom({ network: peerNetwork }), JOIN_TIMEOUT_MS, (late) => late.ok && late.client.leave());
+  // 늦은 성공은 연결만 닫는다 — leave 는 세션 키를 지워 다음 이어하기를 막는다
+  const r = await timed(resumeRoom({ network }), RESUME_TIMEOUT_MS, (late) => late.ok && late.client.close());
   return r.ok && 'client' in r ? { client: r.client, host: null, code } : (r as Fail);
 }
 
