@@ -232,8 +232,8 @@ export async function voteEvenly(players: Page[], names: string[]) {
       expect(await mine.count()).toBeGreaterThan(0);
       for (const b of await mine.all()) await expect(b).toBeDisabled();
       const book = names[(slot + 1) % n]!;
-      await p.getByRole('button', { name: `${book} 책 · ${book} 그림` }).click();
-      await p.getByRole('button', { name: `${book} 책 · ${names[(slot + 2) % n]} 답` }).click();
+      await p.getByRole('button', { name: `${book}의 스케치북 · ${book} 그림` }).click();
+      await p.getByRole('button', { name: `${book}의 스케치북 · ${names[(slot + 2) % n]} 답` }).click();
       await p.getByRole('button', { name: '스티커 다 붙였어요' }).click();
     }),
   );

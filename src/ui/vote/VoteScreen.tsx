@@ -33,7 +33,7 @@ export function VoteScreen(p: VoteScreenProps) {
   const [sent, setSent] = useState(false);
   const items = voteItems(p.pages, p.candidates, p.mySlot);
   const ok = canSubmitVote(items, drawing, answer);
-  const by = (x: VoteItem, what: string) => `${p.nameOf(ownerOf(p.pages, x.chainIdx) ?? x.chainIdx)} 책 · ${p.nameOf(x.entry.bySlot)} ${what}`;
+  const by = (x: VoteItem, what: string) => `${p.nameOf(ownerOf(p.pages, x.chainIdx) ?? x.chainIdx)}의 스케치북 · ${p.nameOf(x.entry.bySlot)} ${what}`;
 
   const cand = (x: VoteItem, picked: EntryKey | null, pick: (k: EntryKey) => void, sx: number, body: ComponentChildren, what: string) => (
     <button
