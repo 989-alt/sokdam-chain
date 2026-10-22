@@ -47,7 +47,7 @@ export function VoteResultScreen(p: VoteResultScreenProps) {
               ))}
             </ul>
           ) : (
-            <p class="vote-none">표가 없어요</p>
+            <p class="vote-none">받은 스티커가 없어요</p>
           )}
         </section>
         <section class="tile result-box" aria-labelledby="best-answer">
@@ -69,11 +69,11 @@ export function VoteResultScreen(p: VoteResultScreenProps) {
               ))}
             </ul>
           ) : (
-            <p class="vote-none">표가 없어요</p>
+            <p class="vote-none">받은 스티커가 없어요</p>
           )}
         </section>
       </div>
-      <img class="result-cheer" src={cheer} alt="마스코트 부엉이가 날개를 들고 기뻐하는 그림" width={621} height={570} />
+      <img class="result-cheer" src={cheer} alt="날개를 들고 기뻐하는 부엉이" width={621} height={570} />
       {error && (
         <p class="banner" role="alert">
           {error}

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mulberry32 } from '../engine';
+import { mulberry32, type Game } from '../engine';
 import { joinRoom } from '../net/client-session';
 import { createHost } from '../net/host-session';
 import { createLoopback } from '../net/loopback';
@@ -108,6 +108,44 @@ describe('category 없는 settings(옛 방장, 프로토콜 v 그대로)', () =>
     expect(got).not.toHaveProperty('category');
     expect(categoryOf(got)).toBe('속담');
     expect(settingsSummary(got, false)).toEqual(['속담', '초등 5~6', '글자로 시작', '그리기 60초', '방장이 넘김']);
+    h.host.leave();
+  });
+});
+
+describe('온라인 묶음 경로(loopback)', () => {
+  beforeEach(() => {
+    saved = null;
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('방장 category 관용표현 + 속담 섞인 pool → 모든 체인 제시어가 관용표현, 학생 settings 도 관용표현', async () => {
+    const net = createLoopback();
+    const flush = (ms = 5) => vi.advanceTimersByTimeAsync(ms);
+    const settings = { category: '관용표현', level: 'e34', mode: 'A', drawSeconds: 60, review: 'manual', reviewSeconds: 5, sound: false, listSource: 'default' } as const;
+    const mk = (type: '관용표현' | '속담', i: number) => ({ id: `${type === '속담' ? 'pv' : 'id'}-${i}`, text: `${type}${i}`, meaning: `뜻${type}${i}`, example: `예${i}`, level: 'e34' as const, type });
+    const pool = Array.from({ length: 12 }, (_, i) => mk(i % 2 ? '속담' : '관용표현', i));
+    const hp = createHost({ network: net, settings, pool, hostName: '방장', rng: mulberry32(3) });
+    await flush();
+    const h = await hp;
+    if (!h.ok) throw new Error(h.reason);
+    const clients = [];
+    for (const name of ['민수', '지우', '하준']) {
+      const jp = joinRoom({ network: net, code: h.host.code, name });
+      await flush();
+      const j = await jp;
+      if (!j.ok) throw new Error(j.reason);
+      clients.push(j.client);
+    }
+    expect(h.host.start()).toEqual({ ok: true });
+    await flush(20);
+    const game = (h.host as unknown as { game: Game }).game;
+    expect(game.chains).toHaveLength(4);
+    expect(game.chains.every((c) => c.word.type === '관용표현')).toBe(true);
+    for (const c of clients) {
+      expect(categoryOf(c.view.settings!)).toBe('관용표현');
+      expect(c.view.cell?.input.text).toMatch(/^관용표현\d+$/); // 0단계 A — 학생이 받은 제시어도 관용표현
+    }
     h.host.leave();
   });
 });

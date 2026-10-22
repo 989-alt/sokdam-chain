@@ -4,7 +4,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { bootDev, devServer } from '../helpers/dev';
 
-const MEANING = '친구가 어려움을 겪을 때 모른 척하지 않고 곁에서 끝까지 도와주어 함께 문제를 해결한다는 뜻입니다요요요요요요';
+const MEANING = '친구가 어려움을 겪을 때 모른 척하지 않고 곁에서 끝까지 도와서 함께 문제를 해결하는 착한 마음을 이르는 말';
 const ANSWER = '친구가 힘들 때 끝까지 곁에서 도와주고 같이 문제를 풀어 주는 착한 마음';
 const VIEWPORTS = [
   { width: 768, height: 950 },
@@ -62,6 +62,24 @@ function check(ps: Probe[], at: string) {
   }
 }
 
+/** 글자 아닌 블록(대체 안내 띠·기다리기 패널·탭 줄)도 칸을 정확히 차지한다: 위 경계와 높이가 47 배수(±1). */
+async function onGrid(page: Page, pageSel: string, sel: string) {
+  const b = await page.evaluate(
+    ({ pageSel, sel }) => {
+      const pg = document.querySelector<HTMLElement>(pageSel)!;
+      const cs = getComputedStyle(pg);
+      const top0 = pg.getBoundingClientRect().top + parseFloat(cs.borderTopWidth) + parseFloat(cs.paddingTop);
+      const r = pg.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
+      return { sel, top: r.top - top0, h: r.height };
+    },
+    { pageSel, sel },
+  );
+  const near = (x: number) => Math.min(((x % LINE) + LINE) % LINE, LINE - (((x % LINE) + LINE) % LINE));
+  expect(near(b.top), JSON.stringify(b)).toBeLessThanOrEqual(1);
+  expect(near(b.h), JSON.stringify(b)).toBeLessThanOrEqual(1);
+  return b;
+}
+
 async function settle(page: Page) {
   await page.evaluate(() => new Promise((r) => setTimeout(r, 150)));
   await expect.poll(() => page.evaluate(() => document.getAnimations().every((a) => a.playState !== 'running'))).toBe(true);
@@ -81,7 +99,7 @@ test('답 쓰기 화면 — 오른쪽 속지 글자가 줄에 앉는다(묶음 4
         w.__render(w.__h(GuessScreen, { input: { kind: 'image', imgId: 'x' }, category, image: () => undefined, submitted: false, onSubmit: () => {}, sound: () => {} }), el);
       }, category);
       await settle(page);
-      const ask = { 속담: '속담을', 관용표현: '관용표현을', 사자성어: '사자성어를', 상식용어: '낱말을' }[category ?? ''] ?? '속담·관용표현을';
+      const ask = { 속담: '속담을', 관용표현: '관용표현을', 사자성어: '사자성어를', 상식용어: '낱말을' }[category ?? ''] ?? '말을';
       await expect(page.locator('.page.lined .ask')).toHaveText(`이 그림이 나타내는 ${ask} 써 보세요`);
       check(await measure(page, 'form.page.lined', ['.who', '.ask', '.field label', '.field .help']), `${vp.width}×${vp.height} ${category}`);
       if (category === '사자성어') await test.info().attach(`guess-${vp.width}x${vp.height}`, { body: await page.screenshot(process.env.SHOT_DIR ? { path: `${process.env.SHOT_DIR}/guess-${vp.width}.png` } : {}), contentType: 'image/png' });
@@ -130,7 +148,52 @@ test('결과 보기 — 제시어 장(뜻 60자)·답 장(40자 두 줄·짧은 
       });
       expect(clip.sh, JSON.stringify(clip)).toBeLessThanOrEqual(clip.ch);
       expect(clip.gb, JSON.stringify(clip)).toBeLessThanOrEqual(clip.pb);
+      if (i === 3) await onGrid(page, '.spread .page.lined', '.fallback'); // 빈 답 장 뒤 대체 안내 띠(한 쪽만 띄워 isGap)
     }
+});
+
+test('결과 보기 — 탭이 두 줄로 접혀도(94px) 머리·본문이 줄 칸에서 시작', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await bootDev(page, dev.url);
+  for (const vp of VIEWPORTS) {
+    await page.setViewportSize(vp);
+    await page.evaluate(async () => {
+      const w = window as any;
+      const { ReviewScreen } = await import(/* @vite-ignore */ '/src/ui/results/ReviewScreen.tsx' as string);
+      const el = document.getElementById('app')!;
+      // 한 권에 쪽 14개 — 탭이 768·1024 폭 모두에서 두 줄로 접힌다
+      const pages = Array.from({ length: 14 }, (_, k) => ({ chainIdx: 0, kind: 'guess', entry: { step: k, kind: 'guess', bySlot: 1, status: 'done', text: `답${k}` }, empty: false }));
+      w.__render(null, el);
+      w.__render(w.__h(ReviewScreen, { pages, page: 0, mode: 'A', category: '속담', nameOf: () => '민재', image: () => undefined, review: 'manual', reviewSeconds: 5, onNext: () => {}, sound: () => {} }), el);
+    });
+    await settle(page);
+    const tabs = await onGrid(page, '.spread .page.lined', '.pagetabs');
+    expect(Math.round(tabs.h), JSON.stringify(tabs)).toBe(2 * LINE);
+    const ps = await measure(page, '.spread .page.lined', ['.who', '.guess']);
+    check(ps, `${vp.width}×${vp.height} 탭 두 줄`);
+    expect(ps[0]!.top).toBeCloseTo(3 * LINE, 0);
+  }
+});
+
+test('답 쓰기 제출 뒤 — 기다리기 패널(6명)이 줄 칸을 정확히 차지', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await bootDev(page, dev.url);
+  for (const vp of VIEWPORTS) {
+    await page.setViewportSize(vp);
+    await page.evaluate(async () => {
+      const w = window as any;
+      const { GuessScreen } = await import(/* @vite-ignore */ '/src/ui/play/GuessScreen.tsx' as string);
+      const { WaitingPanel } = await import(/* @vite-ignore */ '/src/ui/play/WaitingPanel.tsx' as string);
+      const players = ['서연', '민재', '지우', '하준', '도윤', '수아'].map((name, k) => ({ name, connected: k !== 4 }));
+      const waiting = w.__h(WaitingPanel, { count: { submitted: 3, total: 6 }, title: '다른 친구를 기다려요', players });
+      const el = document.getElementById('app')!;
+      w.__render(null, el);
+      w.__render(w.__h(GuessScreen, { input: { kind: 'image', imgId: 'x' }, category: '속담', image: () => undefined, submitted: true, onSubmit: () => {}, sound: () => {}, waiting }), el);
+    });
+    await settle(page);
+    check(await measure(page, 'form.page.lined', ['.who', '.ask']), `${vp.width}×${vp.height} 기다리기`);
+    await onGrid(page, 'form.page.lined', '.waiting');
+  }
 });
 
 test('줄 맞춤은 속지(.page.lined)에만 — 그리기 쪽 .page·뜻 카드는 그대로', async ({ page }) => {

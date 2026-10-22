@@ -44,7 +44,7 @@ export async function device(browser: Browser, o: { spy?: boolean } = {}): Promi
 
 export const sent = (page: Page, t: string) => page.evaluate((t) => (window as unknown as { __sent: Record<string, number> }).__sent[t] ?? 0, t);
 
-export type RoomOpts = { mode?: 'A' | 'B'; drawSeconds?: 30 | 60 | 90 | 120; review?: 'manual' | 3 | 5 | 8; hash?: string };
+export type RoomOpts = { category?: '속담' | '관용표현' | '사자성어' | '상식용어'; mode?: 'A' | 'B'; drawSeconds?: 30 | 60 | 90 | 120; review?: 'manual' | 3 | 5 | 8; hash?: string };
 
 /** 방 만들기 → 대기실. 방 코드를 돌려준다. hash 가 교사 링크면 홈에서 '방 만들기' 로 들어간다. */
 export async function createRoom(page: Page, name: string, o: RoomOpts = {}): Promise<string> {
@@ -53,6 +53,7 @@ export async function createRoom(page: Page, name: string, o: RoomOpts = {}): Pr
     await page.getByRole('link', { name: '방 만들기' }).click();
   } else await page.goto('/#/create');
   const opt = (n: string) => page.getByRole('button', { name: n, exact: true }).click();
+  if (o.category) await opt(o.category);
   if (o.mode === 'B') await opt('뜻 보고 그리기');
   if (o.drawSeconds) await opt(`${o.drawSeconds}초`);
   if (o.review === 'manual') await opt('방장이 넘김');
@@ -194,7 +195,7 @@ async function readPage(p: Page): Promise<ReviewRec> {
 
 /**
  * 수동 결과 보기: 방장이 '다음 쪽' 을 끝까지 누른다. 매 장마다 학생 화면 장 번호가 방장과 같고 학생에겐 넘김 버튼이 없음을 확인.
- * 마지막 장에서 '스티커 투표하기' 를 누른다.
+ * 마지막 장에서 '스티커 붙이기' 를 누른다.
  */
 export async function walkReviewManual(players: Page[], total: number): Promise<ReviewRec[]> {
   const [host, ...students] = players as [Page, ...Page[]];
@@ -209,7 +210,7 @@ export async function walkReviewManual(players: Page[], total: number): Promise<
       await expect.poll(() => reviewSig(s)).toBe(rec.sig);
       await expect(s.locator('.review-foot button')).toHaveCount(0);
     }
-    await host.getByRole('button', { name: i === total - 1 ? '스티커 투표하기' : '다음 쪽' }).click();
+    await host.getByRole('button', { name: i === total - 1 ? '스티커 붙이기' : '다음 쪽' }).click();
   }
   return recs;
 }

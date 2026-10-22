@@ -50,7 +50,7 @@ test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결�
     const spread = page.locator('.spread');
     kinds.push((await spread.locator('.meaning').count()) ? 'card' : (await spread.locator('.pic').count()) ? 'draw' : (await spread.locator('.prompt-page').count()) ? 'prompt' : 'guess');
     if (kinds.at(-1) === 'card') await expect(spread.locator('.meaning .example')).not.toBeEmpty();
-    await page.getByRole('button', { name: i === 2 * (steps + 2) - 1 ? '스티커 투표하기' : '다음 쪽' }).click();
+    await page.getByRole('button', { name: i === 2 * (steps + 2) - 1 ? '스티커 붙이기' : '다음 쪽' }).click();
   }
   const book = ['prompt', 'draw', 'guess', 'draw', 'guess', 'card'];
   expect(kinds).toEqual([...book, ...book]);
@@ -61,8 +61,8 @@ test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결�
     await expect(page.locator('img[src^="blob:"]')).toHaveCount(0);
     await ready();
     for (const b of await page.locator('.cand:has(.mine)').all()) await expect(b).toBeDisabled();
-    await page.locator('[aria-label="베스트 그림 후보"] .cand:not([disabled])').first().click();
-    await page.locator('[aria-label="베스트 답 후보"] .cand:not([disabled])').first().click();
+    await page.locator('[aria-label="스티커 붙일 그림"] .cand:not([disabled])').first().click();
+    await page.locator('[aria-label="스티커 붙일 답"] .cand:not([disabled])').first().click();
     await page.getByRole('button', { name: '스티커 다 붙였어요' }).click();
   }
   await expect(page.getByRole('heading', { name: '베스트 그림' })).toBeVisible();

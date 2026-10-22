@@ -122,7 +122,7 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
               </Opt>
             ))}
           </div>
-          <div class="help">시간이 다 되면 그린 데까지 바로 보내요</div>
+          <div class="help">시간이 다 되면 그린 데까지 보내요 · 답 쓰기는 시간 제한이 없어요</div>
         </fieldset>
         <fieldset>
           <legend>결과 보기</legend>

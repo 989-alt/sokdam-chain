@@ -71,7 +71,7 @@ export function GuessScreen(p: GuessScreenProps) {
         <form class="page lined" aria-label="답 쓰기" onSubmit={submit}>
           <div class="coil" aria-hidden="true" />
           <div class="who">내가 쓰는 답</div>
-          <div class="ask">{p.category ? askText(p.category) : '이 그림이 나타내는 속담·관용표현을 써 보세요'}</div>
+          <div class="ask">{askText(p.category)}</div>
           {done ? (
             p.waiting
           ) : (
@@ -104,7 +104,7 @@ export function GuessScreen(p: GuessScreenProps) {
               </div>
               <button type="submit" class="submit press" disabled={p.offline}>
                 <Icon name="send" size="lg" />
-                <span>{confirming ? '비우고 넘어가기' : '답 보내기'}</span>
+                <span>{confirming ? '빈 답 보내기' : '답 보내기'}</span>
               </button>
             </>
           )}

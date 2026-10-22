@@ -13,8 +13,8 @@ const TOPIC: Record<Category, string> = { 속담: '속담은', 관용표현: '�
 // 답 쓰기 안내(사용자 승인 2026-10-22, Q5): 상식용어만 '낱말을'.
 const OBJECT: Record<Category, string> = { 속담: '속담을', 관용표현: '관용표현을', 사자성어: '사자성어를', 상식용어: '낱말을' };
 
-/** 답 쓰기 안내. 교사 목록만(묶음 없음)은 GuessScreen 이 옛 사용자 확정 문구를 그대로 쓴다. */
-export const askText = (c: Category): string => `이 그림이 나타내는 ${OBJECT[c]} 써 보세요`;
+/** 답 쓰기 안내. 교사 목록만(묶음 없음, null)은 '말을'(T17 리뷰 결정). */
+export const askText = (c: Category | null): string => `이 그림이 나타내는 ${c ? OBJECT[c] : '말을'} 써 보세요`;
 
 /** 그리기 제시. first = 체인 0단계(A 제시어 원문 / B 뜻). 대체 입력이면 hint 자리에 대체 안내. */
 export function drawPrompt(input: Input, first: boolean, category: Category | null): PromptView {

@@ -21,15 +21,16 @@ describe('drawPrompt', () => {
 
 describe('묶음 문구', () => {
   it('힌트 조사표 4개 + 교사 목록만은 제시어', () => {
-    const hint = (c: Parameters<typeof askText>[0] | null) => drawPrompt({ kind: 'text', text: '가' }, false, c).hint;
+    const hint = (c: Parameters<typeof askText>[0]) => drawPrompt({ kind: 'text', text: '가' }, false, c).hint;
     const topics = ['속담은', '관용표현은', '사자성어는', '상식용어는', '제시어는'];
-    expect(['속담', '관용표현', '사자성어', '상식용어', null].map((c) => hint(c as Parameters<typeof askText>[0] | null))).toEqual(topics.map((t) => `원래 ${t} 결과 볼 때 나와요`));
+    expect(['속담', '관용표현', '사자성어', '상식용어', null].map((c) => hint(c as Parameters<typeof askText>[0]))).toEqual(topics.map((t) => `원래 ${t} 결과 볼 때 나와요`));
   });
   it('답 쓰기 안내 — 을/를, 상식용어는 낱말', () => {
     expect(askText('속담')).toBe('이 그림이 나타내는 속담을 써 보세요');
     expect(askText('관용표현')).toBe('이 그림이 나타내는 관용표현을 써 보세요');
     expect(askText('사자성어')).toBe('이 그림이 나타내는 사자성어를 써 보세요');
     expect(askText('상식용어')).toBe('이 그림이 나타내는 낱말을 써 보세요');
+    expect(askText(null)).toBe('이 그림이 나타내는 말을 써 보세요');
   });
 });
 

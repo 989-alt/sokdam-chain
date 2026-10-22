@@ -80,11 +80,11 @@ export function VoteScreen(p: VoteScreenProps) {
             제일 재미있는 그림에 스티커 하나
           </h2>
           {items.drawings.length ? (
-            <div class="vote-grid" role="group" aria-label="베스트 그림 후보">
+            <div class="vote-grid" role="group" aria-label="스티커 붙일 그림">
               {items.drawings.map((x) => cand(x, drawing, setDrawing, 0, <Picture blob={x.entry.imgId ? p.image(x.entry.imgId) : null} alt="" />, '그림'))}
             </div>
           ) : (
-            <p class="vote-none">고를 그림이 없어요</p>
+            <p class="vote-none">스티커 붙일 그림이 없어요</p>
           )}
           <h2 class="vote-h">
             <span class="sticker-demo" aria-hidden="true">
@@ -93,7 +93,7 @@ export function VoteScreen(p: VoteScreenProps) {
             제일 재미있는 답에 스티커 하나
           </h2>
           {items.answers.length ? (
-            <div class="vote-grid" role="group" aria-label="베스트 답 후보">
+            <div class="vote-grid" role="group" aria-label="스티커 붙일 답">
               {items.answers.map((x) =>
                 cand(
                   x,
@@ -108,7 +108,7 @@ export function VoteScreen(p: VoteScreenProps) {
               )}
             </div>
           ) : (
-            <p class="vote-none">고를 답이 없어요</p>
+            <p class="vote-none">스티커 붙일 답이 없어요</p>
           )}
           <button
             type="button"

@@ -164,7 +164,7 @@ export function ReviewScreen(p: ReviewScreenProps) {
         )}
         {p.onNext && (
           <button type="button" class="btn primary press" onClick={p.onNext}>
-            {lastOfAll ? '스티커 투표하기' : '다음 쪽'}
+            {lastOfAll ? '스티커 붙이기' : '다음 쪽'}
             <Icon name="chevron-right" size="lg" />
           </button>
         )}

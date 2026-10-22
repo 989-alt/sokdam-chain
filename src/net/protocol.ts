@@ -16,6 +16,7 @@ export type Settings = {
 };
 
 /** 없으면(옛 방장) '속담' — 기본값(PRD §4). */
+// shortcut: 방장 세션(host-session newGame)은 없으면 '속담' 이 아니라 필터 없음 — type 없는 net/session.test 픽스처 때문. 그 픽스처를 고칠 수 있게 되면 방장도 이 함수를 쓰고 category 를 필수로 바꾼다.
 export const categoryOf = (s: Pick<Settings, 'category'>): Category | null => (s.category === undefined ? '속담' : s.category);
 
 export type Phase = 'lobby' | 'play' | 'review' | 'vote' | 'vote-result' | 'ended';

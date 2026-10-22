@@ -346,7 +346,7 @@ function Setup(p: { teacher: boolean; teacherOnly: boolean; onBack: () => void; 
               </Opt>
             ))}
           </div>
-          <div class="help">시간이 다 되면 그린 데까지 넘어가요 · 답 쓰기는 시간 제한이 없어요</div>
+          <div class="help">시간이 다 되면 그린 데까지 보내요 · 답 쓰기는 시간 제한이 없어요</div>
         </fieldset>
         <div class="form-foot">
           <button type="button" class="btn secondary press" onClick={p.onBack}>

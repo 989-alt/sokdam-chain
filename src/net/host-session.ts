@@ -348,7 +348,8 @@ export class HostSession {
     const r = createGame({
       pool: this.o.pool,
       teacher: this.o.teacher,
-      category: s.category ?? null, // 방장 화면은 늘 넣는다 — 없으면(옛 호출) 묶음 필터 없이 예전처럼
+      // shortcut: category 가 없으면 필터 없음(학생 categoryOf 는 '속담') — 어긋남은 type 없는 net/session.test 픽스처에서만 생긴다(방장 화면은 늘 넣음). 그 픽스처에 type·category 를 넣을 수 있게 되면 categoryOf(s) 로 바꾼다.
+      category: s.category ?? null,
       level: s.level,
       listSource: s.listSource,
       playerCount: this.players.length,
