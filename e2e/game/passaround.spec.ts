@@ -1,6 +1,6 @@
 // 돌려쓰기: 기기(컨텍스트) 하나, 4명·스케치북 2권 완주. 가림 화면엔 앞사람 그림·답이 DOM 에 없다.
 import { expect, test } from '@playwright/test';
-import { answerOf, device, draw, guess, html, NAMES, promptText, stepCount } from '../helpers/game';
+import { answerOf, device, draw, guess, html, NAMES, promptText, stepCount, wordByText } from '../helpers/game';
 
 test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결과 12장 체인마다 카드, 투표 → 결과', async ({ browser }) => {
   test.setTimeout(120_000);
@@ -50,7 +50,7 @@ test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결�
     const spread = page.locator('.spread');
     kinds.push((await spread.locator('.meaning').count()) ? 'card' : (await spread.locator('.pic').count()) ? 'draw' : (await spread.locator('.prompt-page').count()) ? 'prompt' : 'guess');
     if (kinds.at(-1) === 'card') await expect(spread.locator('.meaning .example')).not.toBeEmpty();
-    await page.getByRole('button', { name: i === 2 * (steps + 2) - 1 ? '투표하러 가요' : '다음 쪽' }).click();
+    await page.getByRole('button', { name: i === 2 * (steps + 2) - 1 ? '스티커 투표하기' : '다음 쪽' }).click();
   }
   const book = ['prompt', 'draw', 'guess', 'draw', 'guess', 'card'];
   expect(kinds).toEqual([...book, ...book]);
@@ -68,5 +68,32 @@ test('4명·체인 2개 완주 — 가림 화면 DOM 에 앞 내용 없음, 결�
   await expect(page.getByRole('heading', { name: '베스트 그림' })).toBeVisible();
   await expect(page.locator('section[aria-labelledby="best-drawing"] .best li').first()).toContainText('그린 사람 ·');
   await expect(page.getByRole('button', { name: '한 판 더' })).toBeVisible();
+  await page.context().close();
+});
+
+test('돌려쓰기 묶음 사자성어 — 제시어·답 쓰기 안내·결과 첫 쪽·카드 종류가 사자성어', async ({ browser }) => {
+  const page = await device(browser);
+  await page.goto('/#/pass');
+  for (let i = 0; i < 3; i++) await page.locator(`#pass-name-${i}`).fill(NAMES[i]!);
+  await page.getByRole('button', { name: '1권', exact: true }).click();
+  const cat = page.locator('fieldset.category');
+  expect(await cat.evaluate((e) => e.nextElementSibling?.matches('fieldset.level'))).toBe(true);
+  await cat.getByRole('button', { name: '사자성어', exact: true }).click();
+  await page.getByRole('button', { name: '시작하기' }).click();
+  const ready = async () => {
+    const btn = page.locator('.pass-cover').getByRole('button', { name: '준비됐어요' });
+    await expect(btn).toHaveAttribute('aria-disabled', 'false');
+    await btn.click();
+  };
+  await ready();
+  const word = wordByText((await promptText(page))!);
+  expect(word?.type).toBe('사자성어');
+  await draw(page);
+  await ready();
+  await expect(page.locator('.page.lined .ask')).toHaveText('이 그림이 나타내는 사자성어를 써 보세요');
+  await guess(page, '그림 보고 쓴 답');
+  await expect(page.locator('.screen-review .spread .who')).toHaveText('1쪽 · 처음 사자성어');
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '다음 쪽' }).click();
+  await expect(page.locator('.meaning .kind')).toContainText('사자성어');
   await page.context().close();
 });

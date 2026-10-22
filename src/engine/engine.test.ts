@@ -38,6 +38,7 @@ const opts = (n: number, extra: Partial<CreateOptions> = {}): CreateOptions => (
   minPlayers: 4,
   maxPlayers: 6,
   pool,
+  category: null,
   level: null,
   listSource: 'default',
   rng: mulberry32(1),
@@ -149,7 +150,7 @@ describe('createGame', () => {
 });
 
 describe('pickWords', () => {
-  const src = { pool, level: 'e34' as const, listSource: 'default' as const };
+  const src = { pool, category: null, level: 'e34' as const, listSource: 'default' as const };
   it('같은 시드 → 같은 결과, 겹침 없음, 수준 필터', () => {
     const a = pickWords(src, 5, [], mulberry32(7));
     const b = pickWords(src, 5, [], mulberry32(7));
@@ -183,6 +184,31 @@ describe('pickWords', () => {
     expect(only.ok && only.words.every((x) => x.id.startsWith('t-'))).toBe(true);
     const add = pickWords({ ...src, level: 'm', teacher, listSource: 'teacher-add' }, 6, [], mulberry32(1));
     expect(add.ok && add.words.map((x) => x.id).sort()).toEqual(['p10', 'p11', 'p9', 't-0', 't-1', 't-2']);
+  });
+  it('묶음 필터는 pool 에만 — teacher-add 교사 항목 3개는 type·묶음과 무관하게 후보', () => {
+    const mixed = [...pool, ...[0, 1, 2, 3].map((i): Word => ({ ...w(100 + i), type: '사자성어' }))];
+    const four = pickWords({ ...src, pool: mixed, category: '사자성어', level: 'e34' }, 4, [], mulberry32(2));
+    expect(four.ok && four.words.every((x) => x.type === '사자성어')).toBe(true);
+    // 사자성어 e34 4개 + 교사 3개(type 없음·'선생님 목록') = 7개 전부
+    const t3 = teacher.map((x, i) => (i === 0 ? { ...x, type: '선생님 목록' } : x));
+    const add = pickWords({ ...src, pool: mixed, category: '사자성어', teacher: t3, listSource: 'teacher-add' }, 7, [], mulberry32(2));
+    expect(add.ok && add.words.map((x) => x.id).sort()).toEqual(['p100', 'p101', 'p102', 'p103', 't-0', 't-1', 't-2']);
+    expect(pickWords({ ...src, pool: mixed, category: '상식용어' }, 1, [], mulberry32(2))).toEqual({ ok: false, reason: 'not-enough-words' });
+  });
+
+  it('셀 고갈 reset — 사자성어 e34 25개·6명: 4판은 겹침 없음, 5판째 reset', () => {
+    const cell = [...Array(25).keys()].map((i): Word => ({ ...w(200 + i), type: '사자성어' }));
+    const s = { pool: [...pool, ...cell], category: '사자성어' as const, level: 'e34' as const, listSource: 'default' as const };
+    let used: string[] = [];
+    for (let round = 1; round <= 5; round++) {
+      const g = createGame({ ...s, playerCount: 6, mode: 'A', minPlayers: 4, maxPlayers: 6, exclude: used, rng: mulberry32(round) });
+      if (!g.ok) throw new Error(g.reason);
+      const ids = g.game.chains.map((c) => c.word.id);
+      expect(ids.every((id) => id.startsWith('p2'))).toBe(true);
+      if (round <= 4) expect(ids.some((id) => used.includes(id))).toBe(false);
+      else expect(g.game.usedWordIds).toEqual(ids); // reset → 앞 판 기록을 버리고 이번 판만
+      used = g.game.usedWordIds;
+    }
   });
 });
 
@@ -376,6 +402,6 @@ describe('순수성', () => {
     voteCandidates(g, 0);
     tally(deepFreeze({ 0: { drawing: entryKey(1, 0), answer: entryKey(1, 1) } }), g);
     expect(deepFreeze(pool)).toBe(pool);
-    expect(pickWords({ pool, level: null, listSource: 'default' }, 3, deepFreeze(['p1']), mulberry32(1)).ok).toBe(true);
+    expect(pickWords({ pool, category: null, level: null, listSource: 'default' }, 3, deepFreeze(['p1']), mulberry32(1)).ok).toBe(true);
   });
 });

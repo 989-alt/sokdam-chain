@@ -22,12 +22,11 @@ async function setup(page: Page) {
     const { createHost } = await im('/src/net/host-session.ts');
     const { joinRoom } = await im('/src/net/client-session.ts');
     const { RoomRoute } = await im('/src/app/room.tsx');
-    const { validateWords } = await im('/src/data/schema.ts');
-    const words = (await im('/src/data/words.json?import')).default;
+    const { POOL } = await im('/src/data/words.ts');
     w.__now = 100000;
     const now = () => w.__now;
     const net = createLoopback();
-    const hr = await createHost({ network: net, hostName: '방장', pool: validateWords(words), settings: { mode: 'A', drawSeconds: 30, review: 'manual', sound: false, level: 'e34' }, now });
+    const hr = await createHost({ network: net, hostName: '방장', pool: POOL, settings: { category: '속담', mode: 'A', drawSeconds: 30, review: 'manual', sound: false, level: 'e34' }, now });
     const code = hr.host.code;
     const c2 = (await joinRoom({ network: net, code, name: '학생2', now })).client;
     const c3 = (await joinRoom({ network: net, code, name: '학생3', now })).client;

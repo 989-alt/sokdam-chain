@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { DrawingCanvas } from '../../canvas/DrawingCanvas';
 import { exportDrawing } from '../../canvas/export';
 import { Drawing } from '../../canvas/model';
-import type { Input } from '../../engine';
+import type { Category, Input } from '../../engine';
 import { Icon } from '../shared/Icon';
 import { Topbar } from '../shared/Topbar';
 import { Picture } from './Picture';
@@ -16,8 +16,10 @@ import './play.css';
 
 export type DrawScreenProps = {
   input: Input;
-  /** 체인 0단계(속담 원문·뜻을 처음 보는 칸). */
+  /** 체인 0단계(제시어 원문·뜻을 처음 보는 칸). */
   first: boolean;
+  /** 고른 묶음(힌트 '원래 ○○은 …'). 교사 목록만이면 null. */
+  category: Category | null;
   /** 앞 그림(대체 입력이 그림일 때). */
   image: (imgId: string) => Blob | undefined;
   totalSeconds: number;
@@ -48,7 +50,7 @@ export function DrawScreen(p: DrawScreenProps) {
   const [msg, setMsg] = useState<string | null>(null);
   const r = useRef({ busy: false, auto: false, warned: false, retries: 0 });
   const tv = timerView(p.remainingMs(), p.totalSeconds);
-  const prompt = drawPrompt(p.input, p.first);
+  const prompt = drawPrompt(p.input, p.first, p.category);
 
   const send = async () => {
     if (r.current.busy) return;
@@ -61,7 +63,7 @@ export function DrawScreen(p: DrawScreenProps) {
     } catch {
       r.current.busy = false;
       setBusy(false);
-      setMsg('그림을 만들지 못했어요. 다시 눌러 주세요');
+      setMsg('그림을 저장하지 못했어요. 다시 눌러 주세요');
     }
   };
 
@@ -106,7 +108,7 @@ export function DrawScreen(p: DrawScreenProps) {
   }, [p.error, p.submitted]);
 
   return (
-    <section class="screen screen-draw play-draw" aria-label="그리기 차례">
+    <section class="screen screen-draw play-draw" aria-label="그림 그릴 차례">
       <Topbar title="속담 이어그리기">{p.chips}</Topbar>
       {p.submitted ? (
         p.waiting
@@ -155,7 +157,7 @@ export function DrawScreen(p: DrawScreenProps) {
           </p>
           <button type="button" class="submit press" disabled={busy || !!p.offline} aria-busy={busy} onClick={() => void send()}>
             <Icon name="send" size="lg" />
-            <span>{busy ? '보내는 중이에요' : '다 그렸어요'}</span>
+            <span>{busy ? '보내는 중' : '다 그렸어요'}</span>
             {!busy && p.nextName && <small>· {p.nextName}에게 넘겨요</small>}
           </button>
         </div>

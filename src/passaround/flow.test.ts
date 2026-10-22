@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { mulberry32, stepCount, voteCandidates } from '../engine';
 import { again, current, finalNames, guardUnload, nextPage, nextSlot, reveal, start, submit, turnOrder, vote, wordSource, type Pass, type PassSettings } from './flow';
 
-const S: PassSettings = { level: 'e34', mode: 'A', drawSeconds: 60, chainCount: 2 };
+const S: PassSettings = { category: '속담', level: 'e34', mode: 'A', drawSeconds: 60, chainCount: 2 };
 const names = (n: number) => ['가', '나', '다', '라', '마', '바'].slice(0, n);
 const ok = (r: ReturnType<typeof start>): Pass => {
   if ('ok' in r) throw new Error(r.reason);
@@ -113,11 +113,13 @@ describe('한 판 더·교사 목록', () => {
       { t: '가는 말이 고와야', m: '뜻1', e: '' },
       { t: '오는 말이 곱다', m: '뜻2', e: '' },
     ];
-    expect(wordSource(null, 'm').listSource).toBe('default');
-    const only = wordSource({ mode: 'only', items }, 'm');
-    expect(only).toMatchObject({ listSource: 'teacher-only', level: null });
+    expect(wordSource(null, '사자성어', 'm')).toMatchObject({ listSource: 'default', category: '사자성어' });
+    const only = wordSource({ mode: 'only', items }, '사자성어', 'm');
+    expect(only).toMatchObject({ listSource: 'teacher-only', category: null, level: null });
     expect(only.teacher).toHaveLength(2);
-    expect(wordSource({ mode: 'add', items }, 'm')).toMatchObject({ listSource: 'teacher-add', level: 'm' });
+    expect(wordSource({ mode: 'add', items }, '관용표현', 'm')).toMatchObject({ listSource: 'teacher-add', category: '관용표현', level: 'm' });
+    const q = ok(start(names(4), { ...S, category: '상식용어', chainCount: 2 }, null, mulberry32(3)));
+    q.game.chains.forEach((c) => expect(c.word.type).toBe('상식용어'));
     const p = ok(start(names(3), S, { mode: 'only', items }, mulberry32(7)));
     p.game.chains.forEach((c) => expect(c.word.id).toMatch(/^t-/));
   });

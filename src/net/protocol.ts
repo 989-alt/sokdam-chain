@@ -1,9 +1,11 @@
 // 메시지 프로토콜 v1 (PRD §7.5). 데이터 채널 위 JSON. 공통 머리 { t, v }.
 import { PROTOCOL_VERSION } from '../config';
-import type { EntryKey, Input, Level, ListSource, Mode, ReviewPage } from '../engine';
+import type { Category, EntryKey, Input, Level, ListSource, Mode, ReviewPage } from '../engine';
 
 /** PRD §7.4 Settings. 방장이 정하고 joined 로 학생에게 알린다. */
 export type Settings = {
+  /** 묶음(teacher-only 면 null). v 를 올리지 않고 더한 필드라 없을 수 있다 — 읽을 땐 categoryOf. */
+  category?: Category | null;
   level: Level | null;
   mode: Mode;
   drawSeconds: 30 | 60 | 90 | 120;
@@ -12,6 +14,9 @@ export type Settings = {
   sound: boolean;
   listSource: ListSource;
 };
+
+/** 없으면(옛 방장) '속담' — 기본값(PRD §4). */
+export const categoryOf = (s: Pick<Settings, 'category'>): Category | null => (s.category === undefined ? '속담' : s.category);
 
 export type Phase = 'lobby' | 'play' | 'review' | 'vote' | 'vote-result' | 'ended';
 export type LobbyPlayer = { slot: number; name: string; connected: boolean };

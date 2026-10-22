@@ -28,8 +28,8 @@ export function startReason(players: LobbyPlayer[], canStart: boolean): string {
   const offNote = off.length ? ` · 연결 끊김: ${off.join(', ')}` : '';
   if (n < MIN_PLAYERS) return `${MIN_PLAYERS}명부터 시작할 수 있어요 · 지금 ${n}명${offNote}`;
   if (n > MAX_PLAYERS) return `최대 ${MAX_PLAYERS}명까지 할 수 있어요 · 지금 ${n}명${offNote}`;
-  if (!canStart) return '게임을 시작하는 중이에요';
-  return `모두 모였으면 시작해요 · 최대 ${MAX_PLAYERS}명${offNote}`;
+  if (!canStart) return '게임을 시작해요';
+  return `모두 모였으면 시작해 주세요 · 최대 ${MAX_PLAYERS}명${offNote}`;
 }
 
 export function LobbyScreen({ code, players, mySlot, settings, isHost, canStart, startError, onStart, onLeave }: Props) {
@@ -55,7 +55,7 @@ export function LobbyScreen({ code, players, mySlot, settings, isHost, canStart,
       <div class="lobby">
         <div class="tile code-card">
           <img src={title} alt="" class="code-art" width={1724} height={800} />
-          <div class="lbl">친구에게 이 방 코드를 알려 주세요</div>
+          <div class="lbl">친구들에게 방 코드를 알려 주세요</div>
           <div class="code" role="img" aria-label={`방 코드 ${code.split('').join(' ')}`}>
             {code}
           </div>
@@ -69,7 +69,7 @@ export function LobbyScreen({ code, players, mySlot, settings, isHost, canStart,
             </p>
           )}
           {settings && (
-            <div class="summary" aria-label="설정 요약">
+            <div class="summary" aria-label="방 설정">
               {settingsSummary(settings).map((t) => (
                 <span key={t} class="chip soft">
                   {t}
@@ -81,8 +81,8 @@ export function LobbyScreen({ code, players, mySlot, settings, isHost, canStart,
         <div class="desk-wrap">
           {players.length <= 1 && (
             <div class="lobby-empty tile">
-              <img src={wait} alt="마스코트 부엉이가 턱을 괴고 기다리는 그림" width={506} height={529} />
-              <span>아직 아무도 없어요. 방 코드를 친구에게 알려 주세요</span>
+              <img src={wait} alt="턱을 괴고 기다리는 부엉이" width={506} height={529} />
+              <span>아직 들어온 친구가 없어요. 방 코드를 알려 주세요</span>
             </div>
           )}
           <ul class="desk" aria-label="참가자">
@@ -122,7 +122,7 @@ export function LobbyScreen({ code, players, mySlot, settings, isHost, canStart,
               </div>
             </>
           ) : (
-            <div class="reason">방장이 시작하기를 기다려요</div>
+            <div class="reason">방장이 시작할 때까지 기다려 주세요</div>
           )}
           <button type="button" class="btn secondary press" onClick={onLeave}>
             <Icon name="log-out" />

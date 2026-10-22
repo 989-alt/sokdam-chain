@@ -38,7 +38,7 @@ test('home: mode choice, no mute toggle without sfx files, teacher link small', 
   await page.getByRole('link', { name: '돌려쓰기 시작' }).click();
   await expect(page).toHaveURL(/#\/pass$/);
   await page.goto('/');
-  await page.getByRole('link', { name: /문제 목록 만들기/ }).click();
+  await page.getByRole('link', { name: /선생님 목록 만들기/ }).click();
   await expect(page.locator('#teacher-lines')).toBeVisible();
 });
 
@@ -81,7 +81,7 @@ test('unknown room code → 방을 찾을 수 없어요 within 8 s', async ({ pa
   await page.locator('#room-code').fill('000001');
   await page.locator('#join-name').fill('민재');
   await page.getByRole('button', { name: '들어가기' }).click();
-  await expect(page.getByText('방을 찾을 수 없어요. 코드를 다시 확인해요')).toBeVisible({ timeout: 9_000 });
+  await expect(page.getByText('방을 찾을 수 없어요. 코드를 다시 확인해 주세요')).toBeVisible({ timeout: 9_000 });
 });
 
 test('lobby: start only for host, 3 → disabled with reason, 4 → enabled; joins/leaves/disconnects show', async ({ browser }) => {
@@ -98,7 +98,7 @@ test('lobby: start only for host, 3 → disabled with reason, 4 → enabled; joi
   await expect(start).toHaveAttribute('aria-disabled', 'true');
   await expect(h.locator('#start-reason')).toContainText('4명부터 시작할 수 있어요');
   await expect(a.getByRole('button', { name: '시작하기' })).toHaveCount(0);
-  await expect(a.getByText('방장이 시작하기를 기다려요')).toBeVisible();
+  await expect(a.getByText('방장이 시작할 때까지 기다려 주세요')).toBeVisible();
   await expect(a.locator('.code')).toHaveText(code);
 
   await join(c, code, '하준');
@@ -163,6 +163,22 @@ test('browser back inside pass-around stays; 홈으로 leaves', async ({ page })
   await expect(page.getByRole('heading', { name: '여럿이 각자 기기로' })).toBeVisible();
 });
 
+test('묶음 선택: 수준 바로 위, 기본 속담, 하나만 — 대기실 요약에 묶음 칩', async ({ page }) => {
+  await page.goto('/#/create');
+  const cat = page.locator('fieldset.category');
+  await expect(cat.locator('legend')).toHaveText('묶음');
+  expect(await cat.evaluate((e) => e.nextElementSibling?.matches('fieldset.level'))).toBe(true);
+  const pressed = () => cat.locator('[aria-pressed="true"]').allTextContents();
+  expect(await pressed()).toEqual(['속담']);
+  await cat.getByRole('button', { name: '관용표현', exact: true }).click();
+  expect(await pressed()).toEqual(['관용표현']);
+  await page.getByRole('button', { name: '초등 5~6', exact: true }).click();
+  await page.locator('#host-name').fill('서연');
+  await page.getByRole('button', { name: '방 만들기' }).click();
+  await expect(page.locator('.code')).toHaveText(/^\d{6}$/, { timeout: 15_000 });
+  await expect(page.locator('.summary .chip')).toHaveText(['관용표현', '초등 5~6', '글자로 시작', '그리기 60초', '5초마다 자동 넘김']);
+});
+
 test.describe('teacher link', () => {
   test('valid only-list → badge with count, level hidden, room uses it', async ({ page }) => {
     const enc = encodeList('only', [
@@ -175,6 +191,7 @@ test.describe('teacher link', () => {
     await page.getByRole('link', { name: '방 만들기' }).click();
     await expect(page.getByText('선생님 목록 사용 중 (2개)')).toBeVisible();
     await expect(page.locator('fieldset.level')).toHaveCount(0);
+    await expect(page.locator('fieldset.category')).toHaveCount(0);
     await page.locator('#host-name').fill('서연');
     await page.getByRole('button', { name: '방 만들기' }).click();
     await expect(page.locator('.summary')).toContainText('선생님 목록만');
@@ -182,10 +199,11 @@ test.describe('teacher link', () => {
 
   test('broken link → toast, default list', async ({ page }) => {
     await page.goto('/#l=not-a-valid-list');
-    await expect(page.getByRole('alert')).toContainText('링크가 잘못됐');
+    await expect(page.getByRole('alert')).toContainText('링크가 잘못되어');
     await expect(page.getByText(/선생님 목록 사용 중/)).toHaveCount(0);
     await page.getByRole('link', { name: '방 만들기' }).click();
     await expect(page.locator('fieldset.level')).toBeVisible();
+    await expect(page.locator('fieldset.category')).toBeVisible();
   });
 });
 

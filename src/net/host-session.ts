@@ -348,6 +348,7 @@ export class HostSession {
     const r = createGame({
       pool: this.o.pool,
       teacher: this.o.teacher,
+      category: s.category ?? null, // 방장 화면은 늘 넣는다 — 없으면(옛 호출) 묶음 필터 없이 예전처럼
       level: s.level,
       listSource: s.listSource,
       playerCount: this.players.length,

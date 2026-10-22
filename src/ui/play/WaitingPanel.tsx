@@ -8,7 +8,7 @@ export type WaitingPlayer = { name: string; connected: boolean };
 export function WaitingPanel({ count, title, players }: { count?: { submitted: number; total: number } | null; title: string; players: WaitingPlayer[] }) {
   return (
     <div class="waiting" role="status" aria-live="polite">
-      <img src={mascot} alt="마스코트 부엉이가 마커를 들고 응원하는 그림" width={1145} height={1374} />
+      <img src={mascot} alt="마커를 들고 응원하는 부엉이" width={1145} height={1374} />
       <div>
         <div class="big">{count ? `${count.submitted} / ${count.total} 제출` : title}</div>
         {count && <p class="wait-sub">{title}</p>}

@@ -1,5 +1,5 @@
 // 학습 매핑표 관찰 증거(PRD §2): L2 B 방식 첫 그리기에 원문 없음, L3 답 쓰기에 원문·뜻 없음, L1·L6·L7 체인마다 카드로 끝남.
-// 제시어 확인: 앱에 VITE_TEST_SEED 가 없어서, 0단계 화면의 뜻(B)을 words.json 에서 찾아 word 를 안다(뜻은 44개 모두 서로 다름).
+// 제시어 확인: 앱에 VITE_TEST_SEED 가 없어서, 0단계 화면의 뜻(B)을 본 목록(words/*.json)에서 찾아 word 를 안다(뜻은 모두 서로 다름 — helpers 가 시작 때 검사).
 import { expect, test } from '@playwright/test';
 import { byChain, closeAll, draw, html, playSteps, setupRoom, stepCount, walkReviewManual, wordByMeaning, wordByText, type Word } from '../helpers/game';
 
@@ -28,8 +28,8 @@ test('B 방식 4명 한 판 — L2·L3·L1·L6·L7', async ({ browser }) => {
         // L2: 첫 그리기 화면엔 뜻만 — word.text 는 DOM 어디에도 없다
         const meaning = (await p.locator('.screen-draw .prompt .text').textContent())!.trim();
         const word = wordByMeaning(meaning);
-        expect(word, `뜻 '${meaning}' 이 words.json 에 있다`).toBeTruthy();
-        await expect(p.locator('.screen-draw .prompt .label')).toHaveText('이 뜻을 그림으로 그려요');
+        expect(word, `뜻 '${meaning}' 이 본 목록에 있다`).toBeTruthy();
+        await expect(p.locator('.screen-draw .prompt .label')).toHaveText('이 뜻을 그림으로 그려 보세요');
         expect(await p.evaluate(() => document.body.textContent)).toContain(word!.meaning);
         expect(dom).not.toContain(word!.text);
         words.set(owner, word!);

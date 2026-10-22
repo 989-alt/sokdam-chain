@@ -1,8 +1,7 @@
 // 돌려쓰기 흐름 — 기기 한 대에서 엔진(T01)을 순차 호출한다. 온라인과 규칙은 같고 입력이 화면에서 바로 온다(설계문서 §6.3).
 // 순수 함수만(타이머·DOM 없음). 그림 Blob 은 화면 쪽 메모리 Map 에 두고 여기엔 imgId 만.
-import words from '../data/words.json';
 import { filter } from '../data/filter';
-import { validateWords } from '../data/schema';
+import { POOL } from '../data/words';
 import {
   advance,
   applySubmission,
@@ -12,6 +11,7 @@ import {
   parseKey,
   tally,
   type EntryKey,
+  type Category,
   type Game,
   type Level,
   type ListSource,
@@ -29,9 +29,8 @@ export const MIN = 3;
 export const MAX = 6;
 const NAME_MAX = 12;
 const ANSWER_MAX = 40;
-const POOL = validateWords(words);
 
-export type PassSettings = { level: Level | null; mode: Mode; drawSeconds: number; chainCount: 1 | 2 };
+export type PassSettings = { category: Category | null; level: Level | null; mode: Mode; drawSeconds: number; chainCount: 1 | 2 };
 
 export type Phase =
   | { kind: 'cover' } // 지금 차례 사람에게 넘기는 가림 화면
@@ -56,17 +55,27 @@ export function finalNames(raw: readonly string[]): string[] | null {
   return out;
 }
 
-/** 교사 목록 → 엔진 WordSource. only 면 teacher-only(수준 무시), add 면 teacher-add. */
-export function wordSource(teacher: TeacherList | null, level: Level | null): { pool: readonly Word[]; teacher?: Word[]; level: Level | null; listSource: ListSource } {
-  if (!teacher) return { pool: POOL, level, listSource: 'default' };
+/** 교사 목록 → 엔진 WordSource. only 면 teacher-only(묶음·수준 무시), add 면 teacher-add. */
+export function wordSource(
+  teacher: TeacherList | null,
+  category: Category | null,
+  level: Level | null,
+): { pool: readonly Word[]; teacher?: Word[]; category: Category | null; level: Level | null; listSource: ListSource } {
+  if (!teacher) return { pool: POOL, category, level, listSource: 'default' };
   const only = teacher.mode === 'only';
-  return { pool: POOL, teacher: toWords(teacher.items, level ?? 'e34'), level: only ? null : level, listSource: only ? 'teacher-only' : 'teacher-add' };
+  return {
+    pool: POOL,
+    teacher: toWords(teacher.items, level ?? 'e34'),
+    category: only ? null : category,
+    level: only ? null : level,
+    listSource: only ? 'teacher-only' : 'teacher-add',
+  };
 }
 
 /** 새 판. exclude = 앞 판 usedWordIds(한 판 더). */
 export function start(names: string[], settings: PassSettings, teacher: TeacherList | null, rng: Rng, exclude: readonly string[] = []): Pass | { ok: false; reason: string } {
   const r = createGame({
-    ...wordSource(teacher, settings.level),
+    ...wordSource(teacher, settings.category, settings.level),
     playerCount: names.length,
     mode: settings.mode,
     minPlayers: MIN,

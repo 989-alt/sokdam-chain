@@ -3,6 +3,7 @@
 import { useRef } from 'preact/hooks';
 import { useRoom } from '../../app/room';
 import { stepCount } from '../../engine';
+import { categoryOf } from '../../net/protocol';
 import { ReviewScreen } from '../results/ReviewScreen';
 import { VoteResultScreen } from '../vote/VoteResultScreen';
 import { VoteScreen } from '../vote/VoteScreen';
@@ -43,12 +44,12 @@ export function OnlinePlay() {
   const cell = view.cell;
 
   if (view.phase === 'play') {
-    const waiting = <WaitingPanel count={view.waiting} title="친구들을 기다리고 있어요" players={waitList} />;
+    const waiting = <WaitingPanel count={view.waiting} title="다른 친구를 기다려요" players={waitList} />;
     if (!cell || !settings)
       return (
         <section class="screen" aria-label="기다리기">
           <Topbar title="속담 이어그리기">{meChip}</Topbar>
-          <WaitingPanel title="다음 차례를 준비하고 있어요" players={waitList} />
+          <WaitingPanel title="다음 차례를 준비해요" players={waitList} />
         </section>
       );
     const n = players.length;
@@ -70,6 +71,7 @@ export function OnlinePlay() {
           key={seq.current.n}
           input={cell.input}
           first={cell.step === 0}
+          category={categoryOf(settings)}
           image={image}
           totalSeconds={settings.drawSeconds}
           remainingMs={() => room.client.remainingMs()}
@@ -87,6 +89,7 @@ export function OnlinePlay() {
       <GuessScreen
         key={seq.current.n}
         input={cell.input}
+        category={categoryOf(settings)}
         image={image}
         submitted={view.submitted}
         onSubmit={(t) => room.client.submitGuess(t)}
@@ -104,6 +107,7 @@ export function OnlinePlay() {
         pages={view.pages}
         page={view.page}
         mode={settings.mode}
+        category={categoryOf(settings)}
         nameOf={nameOf}
         image={image}
         review={settings.review}
@@ -125,7 +129,7 @@ export function OnlinePlay() {
         onVote={(d, a) => room.client.vote(d, a)}
         sound={sound}
         chips={meChip}
-        waiting={<WaitingPanel title="친구들이 스티커를 붙이고 있어요" players={waitList} />}
+        waiting={<WaitingPanel title="다들 스티커를 붙이고 있어요" players={waitList} />}
       />
     );
 

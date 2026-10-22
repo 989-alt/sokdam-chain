@@ -5,6 +5,8 @@ import { bootDev, devServer } from '../helpers/dev';
 import { device, draw, guess, NAMES } from '../helpers/game';
 
 const FALLBACK_NOTE = '앞사람 것이 없어서 그 앞 내용을 보여줘요'; // src/ui/play/prompt.ts
+// 가장 긴 묶음 힌트(PRD §4.1 — 관용표현은). 2단계 이상·대체 입력 아님일 때 보인다.
+const LONGEST_HINT = '원래 관용표현은 결과 볼 때 나와요';
 
 const MEANING = '친구가 어려움을 겪을 때 모른 척하지 않고 곁에서 끝까지 도와주어 함께 문제를 해결한다는 뜻입니다요요요요요요';
 const ANSWER = '친구가 힘들 때 끝까지 곁에서 도와주고 같이 문제를 풀어 주는 착한 마음';
@@ -45,14 +47,14 @@ test('뜻 60자·앞사람 답 40자 제시가 768×950·1024×690·768×1024·1
   const page = await device(browser);
   await page.goto('/#/teacher');
   await page.locator('#teacher-lines').fill(`상부상조 | ${MEANING}`);
-  await page.getByRole('radio', { name: '이 목록만' }).check({ force: true });
+  await page.getByRole('radio', { name: '이 목록만 쓰기' }).check({ force: true });
   await expect(page.locator('.teacher-errors')).toHaveCount(0);
   await page.goto(await page.locator('#teacher-link').inputValue());
   await page.getByRole('link', { name: '돌려쓰기 시작' }).click();
   await page.getByRole('button', { name: '한 명 더' }).click();
   for (let i = 0; i < 4; i++) await page.locator(`#pass-name-${i}`).fill(NAMES[i]!);
   await page.getByRole('button', { name: '1권', exact: true }).click();
-  await page.getByRole('button', { name: '뜻', exact: true }).click();
+  await page.getByRole('button', { name: '뜻 보고 그리기', exact: true }).click();
   await page.getByRole('button', { name: '시작하기', exact: true }).click();
   const ready = async () => {
     const btn = page.locator('.pass-cover').getByRole('button', { name: '준비됐어요' });
@@ -69,7 +71,7 @@ test('뜻 60자·앞사람 답 40자 제시가 768×950·1024×690·768×1024·1
   await page.context().close();
 });
 
-// QA r2 #1: 긴 제시에 아래 안내 줄(2단계 이상 '원래 속담은…'·대체 입력 FALLBACK_NOTE)이 함께 있을 때도 잘림 없음·캔버스 ≥ 480.
+// QA r2 #1: 긴 제시에 아래 안내 줄(2단계 이상 '원래 ○○은…' — 가장 긴 관용표현으로·대체 입력 FALLBACK_NOTE)이 함께 있을 때도 잘림 없음·캔버스 ≥ 480.
 // 대체 입력은 돌려쓰기로 만들 수 없어 개발 서버에서 DrawScreen 을 직접 띄운다.
 test.describe('긴 제시 + 안내 줄', () => {
   let dev: Awaited<ReturnType<typeof devServer>>;
@@ -97,7 +99,7 @@ test.describe('긴 제시 + 안내 줄', () => {
           const { DrawScreen } = await import(/* @vite-ignore */ '/src/ui/play/DrawScreen.tsx' as string);
           const el = document.getElementById('app')!;
           w.__render(null, el);
-          w.__render(w.__h(DrawScreen, { input: c.input, first: c.first, image: () => undefined, totalSeconds: 60, remainingMs: () => 45000, nextName: '김철수', submitted: false, onSubmit: () => {}, sound: () => {} }), el);
+          w.__render(w.__h(DrawScreen, { input: c.input, first: c.first, category: '관용표현', image: () => undefined, totalSeconds: 60, remainingMs: () => 45000, nextName: '김철수', submitted: false, onSubmit: () => {}, sound: () => {} }), el);
           await new Promise((r) => setTimeout(r, 120));
           const q = (s: string) => el.querySelector<HTMLElement>(s);
           const p = q('.prompt')!.getBoundingClientRect();
@@ -118,6 +120,7 @@ test.describe('긴 제시 + 안내 줄', () => {
         }, c);
         const at = `${vp.width}×${vp.height} ${JSON.stringify(m)}`;
         if (c.input.fallbackNote) expect(m.hint, at).toBe(FALLBACK_NOTE); // 대체 안내는 절대 빼지 않는다
+        else if (!c.first) expect(m.hint, at).toBe(LONGEST_HINT);
         expect(m.sh, at).toBeLessThanOrEqual(m.ch);
         expect(m.psh, at).toBeLessThanOrEqual(m.pch);
         expect(m.hintIn, at).toBe(true);

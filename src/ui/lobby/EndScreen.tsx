@@ -11,9 +11,9 @@ export function EndScreen({ kind, onHome, onResume }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <section class="screen screen-end" aria-label="종료 안내">
+    <section class="screen screen-end" aria-label="게임 끝">
       <div class="tile end">
-        <img src={sorry} alt="마스코트 부엉이가 미안한 표정으로 날개를 모은 그림" width={509} height={573} />
+        <img src={sorry} alt="미안한 표정으로 날개를 모은 부엉이" width={509} height={573} />
         <h1 class="h">{t.title}</h1>
         <p>{t.body}</p>
         {error && (

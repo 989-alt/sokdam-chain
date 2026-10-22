@@ -1,6 +1,5 @@
 // 방 만들기·들어가기·이어하기를 net 층에 연결한다. UI 는 결과(Room 또는 실패 이유)만 받는다.
-import words from '../data/words.json';
-import { validateWords } from '../data/schema';
+import { POOL } from '../data/words';
 import { createHost } from '../net/host-session';
 import { joinRoom, resumeRoom } from '../net/client-session';
 import { peerNetwork } from '../net/peer-transport';
@@ -11,7 +10,6 @@ import { toWords } from '../teacher/list';
 import type { Room } from './room';
 import type { TeacherList } from './teacher-state';
 
-const POOL = validateWords(words);
 const JOIN_TIMEOUT_MS = 8000; // 계약: 8초 안에 방장 연결이 안 되면 "방을 찾을 수 없어요"
 const CREATE_TIMEOUT_MS = 10000;
 /** 이어하기는 코드 확인이 아니라 다시 붙기 — 느린 ICE(전송 기본 15초)를 기다린다. */

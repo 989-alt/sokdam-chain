@@ -145,6 +145,17 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .page .who { font-family: var(--font-family-display); font-size: 24px; color: var(--color-chain-step-label); line-height: 1.1; }
 .drawing { display: block; width: 100%; aspect-ratio: 4 / 3; background: var(--color-canvas-surface); border: var(--border-width-default) solid var(--color-canvas-frame); border-radius: var(--radius-md); }
 .page.lined { background-image: repeating-linear-gradient(transparent 0 44px, var(--color-book-line) 44px 47px); background-origin: content-box; }
+/* 줄 맞춤(DESIGN §3-2): 줄 주기 47px. 속지 위 글자는 한 줄 = 한 칸(line-height 47px), 위에서 쌓고, 블록 간격·여백은 47 배수.
+   .page.lined 로만 한정 — 그리기 쪽(.page)·뜻 카드(.meaning)엔 안 번진다. play.css 는 못 고쳐(격리) 여기서 특이도로 덮는다.
+   띠 24 + 아래 여백 23 = 47 → 첫 글자 블록이 둘째 칸 위 경계에서 시작. 줄은 10px 올려(줄 윗면 칸 안 34px) 글자 기준선 바로 아래에 둔다 — 실측 기준선 Jua 22~28px 30~31·36px 34(e2e lined.spec). */
+.page.lined { gap: 0; background-position-y: -10px; }
+.page.lined > .coil { margin-bottom: 23px; }
+.page.lined .who, .page.lined .ask, .page.lined .guess, .page.lined .field label, .page.lined .field .help { line-height: 47px; }
+.page.lined .guess { flex: none; display: block; padding: 0; min-height: 235px; }
+.page.lined .field { gap: 0; }
+.page.lined .field input { margin-bottom: calc(94px - var(--size-touch-primary)); } /* 입력란 72 + 22 = 두 칸 → 아래 도움말이 줄 경계에서 */
+.page.lined .pagetabs { row-gap: 7px; padding-bottom: 7px; } /* 탭 40 + 7 = 한 칸, 두 줄로 접혀도 94 */
+.page.lined .pagetabs span { min-height: 40px; height: 40px; }
 .ask { font-family: var(--font-family-display); font-size: 28px; line-height: 1.2; }
 .field { display: flex; flex-direction: column; gap: var(--spacing-2); }
 .field label { font-family: var(--font-family-display); font-size: 22px; line-height: 1.1; }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { deflateSync, strFromU8 } from 'fflate';
 import { validateWords } from '../data/schema';
-import words from '../data/words.json';
+import { POOL } from '../data/words';
 import { buildLink, copyText, decodeFailMessage, decodeList, ITEMS_MAX, encodeList, HASH_MAX, parseLines, PREFIX, toWords, type ListItem } from './list';
 
 const b64url = (bytes: Uint8Array) => btoa(strFromU8(bytes, true)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -23,7 +23,7 @@ describe('parseLines', () => {
       { t: '원숭이', m: '실수한다', e: '' },
     ]);
   });
-  it('조각 1개·빈 속담·빈 뜻은 줄 번호와 함께 오류', () => {
+  it('조각 1개·빈 제시어·빈 뜻은 줄 번호와 함께 오류', () => {
     const r = parseLines('속담만\n\n | 뜻\n속담 |  | 예문');
     expect(r.items).toEqual([]);
     expect(r.errors.map((e) => e.line)).toEqual([1, 3, 4]);
@@ -34,24 +34,24 @@ describe('parseLines', () => {
     const r = parseLines([ok, `${'가'.repeat(31)} | 뜻`, `속담2 | ${'나'.repeat(61)}`, `속담3 | 뜻 | ${'다'.repeat(81)}`].join('\n'));
     expect(r.items).toHaveLength(1);
     expect(r.errors.map((e) => [e.line, e.reason.slice(0, 2)])).toEqual([
-      [2, '속담'],
+      [2, '제시'],
       [3, '뜻은'],
       [4, '예문'],
     ]);
   });
-  it('같은 속담은 먼저 것만', () => {
+  it('같은 제시어는 먼저 것만', () => {
     const r = parseLines('a | 뜻1\nb | 뜻\na | 뜻2');
     expect(r.items.map((x) => x.m)).toEqual(['뜻1', '뜻']);
   });
 });
 
 describe('toWords', () => {
-  it("id 't-<순번>', type 관용표현, validateWords 통과", () => {
+  it("id 't-<순번>', type '선생님 목록', validateWords 통과", () => {
     const { items } = parseLines('a | 뜻a | 예문a\nb | 뜻b | 예문b');
     const w = toWords(items, 'e34');
     expect(w.map((x) => [x.id, x.type])).toEqual([
-      ['t-1', '관용표현'],
-      ['t-2', '관용표현'],
+      ['t-1', '선생님 목록'],
+      ['t-2', '선생님 목록'],
     ]);
     expect(validateWords(w)).toBe(w);
   });
@@ -79,15 +79,14 @@ describe('encode/decode', () => {
     const padded = PREFIX + body + '='.repeat((4 - (body.length % 4)) % 4);
     expect(decodeList(padded).ok).toBe(true);
   });
-  it('실제 낱말 50개(44 + 변형 6) 왕복 성공, 1,500 넘으면 QR 경고', () => {
-    const base = words.map((w) => ({ t: w.text, m: w.meaning, e: w.example }));
-    const items = [...base, ...base.slice(0, 50 - base.length).map((x) => ({ ...x, t: `${x.t}2` }))];
-    expect(items).toHaveLength(50);
+  it('실제 낱말 40개 왕복 성공, 1,500 넘으면 QR 경고', () => {
+    const items = POOL.slice(0, 40).map((w) => ({ t: w.text, m: w.meaning, e: w.example }));
+    expect(items).toHaveLength(40);
     const r = encodeList('add', items);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.hash.length).toBeLessThanOrEqual(HASH_MAX);
-    expect(r.warning).toMatch(/^QR 로 나눠 주려면 \d+개 이하가 좋아요$/);
+    expect(r.warning).toMatch(/^QR로 나눠 주려면 \d+개 이하가 좋아요$/);
     const n = Number(r.warning!.match(/\d+/)![0]);
     expect(encodeList('add', items.slice(0, n)).ok && !(encodeList('add', items.slice(0, n)) as { warning?: string }).warning).toBe(true);
     expect((encodeList('add', items.slice(0, n + 1)) as { warning?: string }).warning).toBeDefined();

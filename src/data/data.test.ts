@@ -1,12 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import words from './words.json';
-import { validateWords } from './schema';
+import { FILES, POOL } from './words';
+import { TYPES, validateWords } from './schema';
 import { filter } from './filter';
 import { BANNED_WORDS } from './banned-words';
 
 describe('validateWords', () => {
-  it('words.json 통과', () => {
-    expect(validateWords(words)).toHaveLength(words.length);
+  // PRD §7.3 묶음 파일 4개 — 파일 · type · id 접두어 · 수준 분포
+  const SPEC = {
+    proverb: ['속담', 'pv', { e34: 35, e56: 35, m: 30 }],
+    idiom: ['관용표현', 'id', { e34: 35, e56: 35, m: 30 }],
+    'four-char': ['사자성어', 'fc', { e34: 25, e56: 35, m: 40 }],
+    'common-term': ['상식용어', 'ct', { e34: 30, e56: 35, m: 35 }],
+  } as const;
+  for (const [f, [type, prefix, dist]] of Object.entries(SPEC)) {
+    it(`${f}.json — 100개, validateWords 통과, type ${type}, id ${prefix}-NNN, 분포 ${JSON.stringify(dist)}`, () => {
+      const w = FILES[f as keyof typeof FILES];
+      expect(validateWords(w)).toHaveLength(100);
+      expect(w.every((x) => x.type === type && new RegExp(`^${prefix}-\\d{3}$`).test(x.id))).toBe(true);
+      const c: Record<string, number> = {};
+      for (const x of w) c[x.level] = (c[x.level] ?? 0) + 1;
+      expect(c).toEqual(dist);
+    });
+  }
+  it('합친 POOL 400개 — id·text 유일(공백 무시), type 은 묶음 4개뿐', () => {
+    expect(POOL).toHaveLength(400);
+    expect(new Set(POOL.map((x) => x.id)).size).toBe(400);
+    expect(new Set(POOL.map((x) => x.text.replace(/\s+/g, ''))).size).toBe(400);
+    expect(new Set(POOL.map((x) => x.type))).toEqual(new Set(TYPES));
+  });
+  it('교사 항목(t-)만 type 선생님 목록 허용', () => {
+    expect(validateWords([{ ...ok, id: 't-1', type: '선생님 목록' }])).toHaveLength(1);
+    expect(() => validateWords([{ ...ok, type: '선생님 목록' }])).toThrow(/type/);
   });
   const ok = { id: 'x1', text: '발이 넓다', meaning: '뜻', example: '예문', level: 'e34', type: '관용표현' };
   it('잘못된 level 거부', () => {
@@ -68,8 +92,8 @@ describe('filter', () => {
   it('이름 전체가 가려져도 ●●● 그대로 반환(입장 막지 않음)', () => {
     expect(filter('멍청이')).toBe('●●●');
   });
-  it('words.json 낱말은 필터에 걸리지 않음', () => {
-    for (const w of words) for (const s of [w.text, w.meaning, w.example]) expect(filter(s)).toBe(s);
+  it('본 목록 400개 낱말은 필터에 걸리지 않음', () => {
+    for (const w of POOL) for (const s of [w.text, w.meaning, w.example]) expect(filter(s)).toBe(s);
   });
   it('목록은 정규화 형태', () => {
     for (const b of BANNED_WORDS) expect(b).toMatch(/^[가-힣ㄱ-ㅎㅏ-ㅣa-z]+$/);

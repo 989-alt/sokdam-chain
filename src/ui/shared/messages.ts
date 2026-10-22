@@ -14,19 +14,19 @@ export function joinFailMessage(reason: string): string {
     case 'no-room':
     case 'timeout':
     case 'code':
-      return '방을 찾을 수 없어요. 코드를 다시 확인해요';
+      return '방을 찾을 수 없어요. 코드를 다시 확인해 주세요';
     case 'unknown':
     case 'ended':
     case 'no-session':
       return '이어할 게임이 없어요. 새로 들어가 주세요';
     default:
-      return '지금은 연결할 수 없어요. 와이파이를 확인하고 다시 해 보세요';
+      return '연결할 수 없어요. 와이파이를 확인하고 다시 해 보세요';
   }
 }
 
 /** 이어하기 실패 — 코드를 쓴 적이 없으니 코드 확인 안내는 하지 않는다. */
 export function resumeFailMessage(reason: string): string {
-  if (reason === 'timeout') return '연결이 늦어요. 잠시 뒤 이어하기를 다시 눌러 주세요';
+  if (reason === 'timeout') return '연결이 잘 안 돼요. 잠시 뒤 이어하기를 다시 눌러 주세요';
   if (reason === 'no-room') return '이어할 게임이 없어요. 새로 들어가 주세요';
   return joinFailMessage(reason);
 }
@@ -37,8 +37,8 @@ export const createFailMessage = '지금은 연결할 수 없어요. 기기 한 
 export type EndKind = 'host-left' | 'finished' | 'lost' | 'left';
 
 export const endText: Record<EndKind, { title: string; body: string }> = {
-  'host-left': { title: '방장 연결이 끊겨 게임이 끝났어요', body: '그림과 답은 방장 기기에만 있었어요. 홈으로 가서 새로 시작해요.' },
-  finished: { title: '게임이 끝났어요', body: '모든 차례가 끝났어요. 홈으로 가서 새로 시작해요.' },
-  lost: { title: '연결이 끊겼어요', body: '와이파이를 확인하고 이어하기를 눌러 보세요.' },
-  left: { title: '방에서 나왔어요', body: '홈으로 가서 다시 들어가거나 새 방을 만들어요.' },
+  'host-left': { title: '방장 연결이 끊겨 게임이 끝났어요', body: '그림과 답이 방장 기기에만 남았어요. 처음 화면에서 다시 시작해 주세요' },
+  finished: { title: '게임이 끝났어요', body: '모든 차례가 끝났어요. 처음 화면에서 새 게임을 시작해 주세요' },
+  lost: { title: '연결이 끊겼어요', body: '와이파이를 확인하고 이어하기를 눌러 보세요' },
+  left: { title: '방에서 나왔어요', body: '처음 화면에서 다시 들어가거나 새 방을 만들어 주세요' },
 };

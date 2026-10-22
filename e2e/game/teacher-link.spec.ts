@@ -15,7 +15,7 @@ test('교사 목록(이 목록만) 링크 → 새 기기 홈 → 수준 선택 �
   const teacher = await device(browser);
   await teacher.goto('/#/teacher');
   await teacher.locator('#teacher-lines').fill(ITEMS.map((x) => [x.t, x.m, x.e].join(' | ')).join('\n'));
-  await teacher.getByRole('radio', { name: '이 목록만' }).check({ force: true });
+  await teacher.getByRole('radio', { name: '이 목록만 쓰기' }).check({ force: true });
   await expect(teacher.locator('.teacher-errors')).toHaveCount(0);
   const link = teacher.locator('#teacher-link');
   await expect(link).toHaveValue(/#l=/);
@@ -28,6 +28,7 @@ test('교사 목록(이 목록만) 링크 → 새 기기 홈 → 수준 선택 �
   await expect(host.getByText(`선생님 목록 사용 중 (${ITEMS.length}개)`)).toBeVisible();
   await host.getByRole('link', { name: '방 만들기' }).click();
   await expect(host.locator('fieldset.level')).toHaveCount(0);
+  await expect(host.locator('fieldset.category')).toHaveCount(0); // 이 목록만 → 묶음도 숨김
   await host.locator('#host-name').fill(NAMES[0]!);
   await host.getByRole('button', { name: '방 만들기' }).click();
   const code = (await host.locator('.code').textContent({ timeout: 15_000 }))!;

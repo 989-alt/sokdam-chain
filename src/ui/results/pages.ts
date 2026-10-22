@@ -1,5 +1,5 @@
 // 결과 보기 장 모델. 장 순서는 엔진 reviewPages 그대로 — 여기서는 위치·문구만 계산한다.
-import type { Entry, Mode, ReviewPage } from '../../engine';
+import type { Category, Entry, Mode, ReviewPage } from '../../engine';
 
 export type PagePos = {
   chainIdx: number;
@@ -35,10 +35,10 @@ export function pagePos(pages: readonly ReviewPage[], i: number): PagePos {
 }
 
 /** 쪽 머리 문구. 이름은 넘겨받은 그대로(" (2)"·● 마스킹 유지). */
-export function pageLabel(page: ReviewPage, pageNo: number, nameOf: (slot: number) => string, mode: Mode): string {
+export function pageLabel(page: ReviewPage, pageNo: number, nameOf: (slot: number) => string, mode: Mode, category: Category | null): string {
   switch (page.kind) {
     case 'prompt':
-      return `${pageNo}쪽 · 처음 ${mode === 'B' ? '뜻' : '제시어'}`;
+      return `${pageNo}쪽 · 처음 ${mode === 'B' ? '뜻' : (category ?? '제시어')}`;
     case 'draw':
       return `${pageNo}쪽 · ${nameOf(page.entry.bySlot)} 그림`;
     case 'guess':
@@ -48,10 +48,10 @@ export function pageLabel(page: ReviewPage, pageNo: number, nameOf: (slot: numbe
   }
 }
 
-/** 답 장 본문: 결측 '답 없음', 빈 제출 '(빈 답)'. */
+/** 답 장 본문: 결측 '답 없음', 빈 제출 '(비어 있음)'. */
 export function guessText(entry: Entry, empty: boolean): string {
   if (entry.status !== 'done') return '답 없음';
-  return empty || !entry.text ? '(빈 답)' : entry.text;
+  return empty || !entry.text ? '(비어 있음)' : entry.text;
 }
 
 /** 그림 장 Blob: 받아 둔 캐시에서 바로, 결측·아직 없음이면 null(→ '그림 없음' 자리). */

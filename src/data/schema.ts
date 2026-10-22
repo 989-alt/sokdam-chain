@@ -1,7 +1,9 @@
-// words.json 스키마 (PRD §7.3). 현재 words.json 은 임시 목록, 검수 전(설계문서 §7-4) — 수업 전 사용자 검수 필요.
+// 제시어 스키마 (PRD §7.3). 본 목록은 words/<묶음>.json 4개 — 합치기는 words.ts. 수업 전 사용자 검수(H4).
 
 export const LEVELS = ['e34', 'e56', 'm'] as const;
-export const TYPES = ['어휘', '속담', '관용표현', '사자성어'] as const;
+export const TYPES = ['속담', '관용표현', '사자성어', '상식용어'] as const;
+/** 교사 목록 항목의 type(카드 종류 라벨). 묶음이 아니다 — 본 목록 검증에선 받지 않는다. */
+export const TEACHER_TYPE = '선생님 목록';
 export type Level = (typeof LEVELS)[number];
 export type WordType = (typeof TYPES)[number];
 
@@ -11,7 +13,7 @@ export interface Word {
   meaning: string;
   example: string;
   level: Level;
-  type: WordType;
+  type: WordType | typeof TEACHER_TYPE;
 }
 
 const FIELDS = ['id', 'text', 'meaning', 'example', 'level', 'type'];
@@ -28,10 +30,11 @@ export function validateWords(json: unknown): Word[] {
     const keys = Object.keys(o);
     if (keys.length !== FIELDS.length || !FIELDS.every((f) => keys.includes(f))) throw new Error(`${at}: 필드는 ${FIELDS.join('·')} 여섯 개여야 함`);
     // 교사 목록 항목(toWords 가 id 't-<순번>')은 예문을 비워도 된다(PRD §7.6) — 본 목록은 필수
-    const optional = (f: string) => f === 'example' && typeof o.id === 'string' && o.id.startsWith('t-');
+    const teacherItem = typeof o.id === 'string' && o.id.startsWith('t-');
+    const optional = (f: string) => f === 'example' && teacherItem;
     for (const f of FIELDS) if (typeof o[f] !== 'string' || (!(o[f] as string).trim() && !optional(f))) throw new Error(`${at}: ${f} 비어 있음`);
     if (!(LEVELS as readonly unknown[]).includes(o.level)) throw new Error(`${at}: level 잘못됨 ${String(o.level)}`);
-    if (!(TYPES as readonly unknown[]).includes(o.type)) throw new Error(`${at}: type 잘못됨 ${String(o.type)}`);
+    if (!(TYPES as readonly unknown[]).includes(o.type) && !(teacherItem && o.type === TEACHER_TYPE)) throw new Error(`${at}: type 잘못됨 ${String(o.type)}`);
     if ((o.meaning as string).length > 60) throw new Error(`${at}: meaning 60자 초과`);
     if ((o.example as string).length > 80) throw new Error(`${at}: example 80자 초과`);
     if (ids.has(o.id as string)) throw new Error(`${at}: id 중복 ${String(o.id)}`);

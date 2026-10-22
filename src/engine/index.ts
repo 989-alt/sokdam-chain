@@ -3,6 +3,8 @@
 
 export type Level = 'e34' | 'e56' | 'm';
 export type Mode = 'A' | 'B';
+/** 묶음(PRD §4). 교사 목록만 쓰면 null. */
+export type Category = '속담' | '관용표현' | '사자성어' | '상식용어';
 export type ListSource = 'default' | 'teacher-add' | 'teacher-only';
 /** PRD §7.3. 교사 항목엔 level 이 없을 수 있다. */
 export type Word = { id: string; text: string; meaning: string; example: string; level?: string; type?: string };
@@ -56,9 +58,9 @@ export function mulberry32(seed: number): Rng {
   };
 }
 
-export type WordSource = { pool: readonly Word[]; teacher?: readonly Word[]; level: Level | null; listSource: ListSource };
+export type WordSource = { pool: readonly Word[]; teacher?: readonly Word[]; category: Category | null; level: Level | null; listSource: ListSource };
 
-/** 후보 = 수준 필터(+교사 목록) − exclude. 모자라면 exclude 를 비우고 다시. reset 은 그때 true. */
+/** 후보 = pool 의 묶음·수준 필터(+교사 목록 — 묶음·수준 무관) − exclude. 모자라면 exclude 를 비우고 다시. reset 은 그때 true. */
 export function pickWords(
   src: WordSource,
   n: number,
@@ -69,7 +71,7 @@ export function pickWords(
   const base =
     src.listSource === 'teacher-only'
       ? teacher
-      : [...src.pool.filter((w) => src.level === null || w.level === src.level), ...(src.listSource === 'teacher-add' ? teacher : [])];
+      : [...src.pool.filter((w) => (src.category === null || w.type === src.category) && (src.level === null || w.level === src.level)), ...(src.listSource === 'teacher-add' ? teacher : [])];
   const seen = new Set<string>();
   const unique = base.filter((w) => !seen.has(w.id) && !!seen.add(w.id)); // 같은 id 는 하나만 — 중복 뽑기 방지
   const ex = new Set(exclude);
@@ -206,7 +208,7 @@ export const isStepComplete = (g: Game): boolean =>
 export const advance = (g: Game): Game => (!isFinished(g) && isStepComplete(g) ? { ...g, step: g.step + 1 } : g);
 
 export type ReviewPage =
-  | { chainIdx: number; kind: 'prompt'; text: string } // A: 속담 원문, B: 뜻만
+  | { chainIdx: number; kind: 'prompt'; text: string } // A: 제시어 원문, B: 뜻만
   | { chainIdx: number; kind: 'draw' | 'guess'; entry: Entry; empty: boolean } // empty: 빈 답 제출('답 없음')
   | { chainIdx: number; kind: 'card'; word: Word };
 

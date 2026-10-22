@@ -2,7 +2,7 @@
 // 이 화면은 스스로 장을 넘기지 않는다. onNext 가 있을 때만 '다음 쪽' 버튼이 생긴다.
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { Mode, ReviewPage } from '../../engine';
+import type { Category, Mode, ReviewPage } from '../../engine';
 import { Picture } from '../play/Picture';
 import { FALLBACK_NOTE } from '../play/prompt';
 import type { Sfx } from '../play/sfx';
@@ -15,6 +15,8 @@ export type ReviewScreenProps = {
   pages: ReviewPage[];
   page: number;
   mode: Mode;
+  /** 고른 묶음 — 첫 쪽 머리 '처음 ○○'. 교사 목록만이면 null(→ '제시어'). */
+  category: Category | null;
   nameOf: (slot: number) => string;
   image: (imgId: string) => Blob | undefined;
   review: 'timer' | 'manual';
@@ -64,7 +66,7 @@ export function ReviewScreen(p: ReviewScreenProps) {
   const pos = pagePos(p.pages, i);
   const chainPages = p.pages.filter((x) => x.chainIdx === pos.chainIdx);
   const owner = pos.owner === null ? '' : p.nameOf(pos.owner);
-  const label = pageLabel(page, pos.pageNo, p.nameOf, p.mode);
+  const label = pageLabel(page, pos.pageNo, p.nameOf, p.mode, p.category);
   const lastOfAll = p.page >= p.pages.length - 1;
 
   return (
@@ -81,7 +83,7 @@ export function ReviewScreen(p: ReviewScreenProps) {
         )}
         <div class="progress">
           쪽
-          <div class="bar" role="progressbar" aria-valuemin={1} aria-valuemax={pos.pageCount} aria-valuenow={pos.pageNo} aria-label="쪽 진행">
+          <div class="bar" role="progressbar" aria-valuemin={1} aria-valuemax={pos.pageCount} aria-valuenow={pos.pageNo} aria-label="진행 순서">
             <i style={{ width: `${(pos.pageNo / pos.pageCount) * 100}%` }} />
           </div>
           {pos.pageNo} / {pos.pageCount}
@@ -157,12 +159,12 @@ export function ReviewScreen(p: ReviewScreenProps) {
           </>
         ) : (
           <div class="auto" aria-live="polite">
-            {p.onNext ? '모두 다 봤으면 넘겨 주세요' : '방장이 다음 쪽으로 넘겨요'}
+            {p.onNext ? '다 봤으면 넘겨 주세요' : '방장이 다음 쪽으로 넘길 거예요'}
           </div>
         )}
         {p.onNext && (
           <button type="button" class="btn primary press" onClick={p.onNext}>
-            {lastOfAll ? '투표하러 가요' : '다음 쪽'}
+            {lastOfAll ? '스티커 투표하기' : '다음 쪽'}
             <Icon name="chevron-right" size="lg" />
           </button>
         )}

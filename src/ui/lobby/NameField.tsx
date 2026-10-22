@@ -22,7 +22,7 @@ export function NameField({ id, value, onChange }: { id: string; value: string; 
         }}
       />
       <div class="help" id={`${id}-help`}>
-        <span>{NAME_MAX}글자까지 · 나쁜 말은 ●로 가려요</span>
+        <span>{NAME_MAX}글자까지 · 나쁜 말은 ●로 가려져요</span>
         <span>
           {[...value].length} / {NAME_MAX}자
         </span>

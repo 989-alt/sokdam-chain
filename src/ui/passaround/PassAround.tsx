@@ -12,7 +12,7 @@ import cover6 from '../../../assets/img/UI-02-book-cover/6.webp';
 import { useTeacherList } from '../../app/teacher-state';
 import { inputFor, reviewPages, stepCount, voteCandidates } from '../../engine';
 import { again, current, finalNames, guardUnload, MAX, MIN, nextPage, nextSlot, reveal, start, submit, vote, type Pass, type PassSettings } from '../../passaround/flow';
-import { DRAW_SECONDS, LEVELS } from '../lobby/labels';
+import { CATEGORIES, DRAW_SECONDS, LEVELS } from '../lobby/labels';
 import { NameField } from '../lobby/NameField';
 import { DrawScreen } from '../play/DrawScreen';
 import { GuessScreen } from '../play/GuessScreen';
@@ -26,7 +26,7 @@ import './passaround.css';
 
 const COVERS = [cover1, cover2, cover3, cover4, cover5, cover6];
 const startFail = (teacherOnly: boolean) =>
-  teacherOnly ? '선생님 목록의 제시어가 모자라 시작할 수 없어요. 스케치북을 1권으로 줄이거나 목록을 늘려 주세요' : '제시어가 모자라 시작할 수 없어요. 수준을 바꾸거나 선생님 목록을 확인해 주세요';
+  teacherOnly ? '선생님 목록에 제시어가 모자라요. 스케치북을 1권으로 줄이거나 제시어를 더 넣어 주세요' : '제시어가 모자라요. 묶음·수준을 바꾸거나 선생님 목록을 확인해 주세요';
 /** 앞사람이 "보냈어요"를 두 번 누른 손가락이 다음 사람 내용을 열지 않게, 가림 화면 버튼은 잠깐 잠근다. */
 const READY_DELAY_MS = 400;
 
@@ -69,7 +69,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
   // 상태 갱신은 모두 최신 상태 기준(함수형) — 연타로 두 번 불려도 두 번째는 이미 다음 가림 화면이라 flow 가 무시한다.
   const update = (f: (p: Pass) => Pass) => setPass((p) => (p ? f(p) : p));
   const quit = () => {
-    if (confirm('지금 판이 사라져요. 그만할까요?')) onExit();
+    if (confirm('지금 하던 게임이 지워져요. 그만할까요?')) onExit();
   };
 
   if (ph.kind === 'cover' || ph.kind === 'vote-cover') {
@@ -80,7 +80,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
       <Cover
         key={ph.kind === 'cover' ? `c${pass.game.step}` : `v${ph.voter}`}
         name={nameOf(slot)}
-        what={ph.kind === 'vote-cover' ? '스티커를 붙일 차례' : c!.entry.kind === 'draw' ? '그림 그릴 차례' : '답 쓸 차례'}
+        what={ph.kind === 'vote-cover' ? '스티커 붙일 차례' : c!.entry.kind === 'draw' ? '그림 그릴 차례' : '답 쓸 차례'}
         cover={COVERS[owner % 6]!}
         onReady={() => update((p) => reveal(p, Date.now()))}
         onQuit={quit}
@@ -112,6 +112,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
           key={pass.game.step}
           input={inputFor(c.chain, c.step, pass.game.mode)}
           first={c.step === 0}
+          category={pass.settings.category}
           image={image}
           totalSeconds={pass.settings.drawSeconds}
           remainingMs={() => deadline - Date.now()}
@@ -131,6 +132,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
       <GuessScreen
         key={pass.game.step}
         input={inputFor(c.chain, c.step, pass.game.mode)}
+        category={pass.settings.category}
         image={image}
         submitted={false}
         onSubmit={(text) => update((p) => submit(p, { text }))}
@@ -146,6 +148,7 @@ export function PassAround({ onExit }: { onExit: () => void }) {
         pages={pages}
         page={ph.page}
         mode={pass.game.mode}
+        category={pass.settings.category}
         nameOf={nameOf}
         image={image}
         review="manual"
@@ -215,7 +218,7 @@ function Cover({ name, what, cover, onReady, onQuit }: { name: string; what: str
           <img class="pass-shh" src={shh} alt="" width={542} height={570} />
         </div>
         <h1 class="h">{name} 차례예요. 준비되면 누르세요</h1>
-        <p>{what}이에요. 다른 친구는 화면을 보지 말아요</p>
+        <p>{what}예요. 다른 친구는 화면을 보지 말아요</p>
         {/* disabled 대신 aria-disabled — disabled 버튼은 포커스를 받지 못한다 */}
         <button ref={ready} type="button" class="btn primary press" aria-disabled={!armed} onClick={() => armed && onReady()}>
           <Icon name="play" size="lg" />
@@ -233,7 +236,7 @@ function Cover({ name, what, cover, onReady, onQuit }: { name: string; what: str
 /** 화면 13 설정: 이름 차례대로(3~6), 체인 수, 수준·방식·그리기 시간. */
 function Setup(p: { teacher: boolean; teacherOnly: boolean; onBack: () => void; onStart: (names: string[], s: PassSettings) => string | null }) {
   const [raw, setRaw] = useState<string[]>(['', '', '']);
-  const [s, setS] = useState<PassSettings>({ level: 'e34', mode: 'A', drawSeconds: 60, chainCount: 2 });
+  const [s, setS] = useState<PassSettings>({ category: '속담', level: 'e34', mode: 'A', drawSeconds: 60, chainCount: 2 });
   const [error, setError] = useState<string | null>(null);
   const set = (x: Partial<PassSettings>) => setS({ ...s, ...x });
   const names = finalNames(raw);
@@ -258,7 +261,7 @@ function Setup(p: { teacher: boolean; teacherOnly: boolean; onBack: () => void; 
         class="form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (names) setError(p.onStart(names, { ...s, level: p.teacherOnly ? null : s.level }));
+          if (names) setError(p.onStart(names, { ...s, category: p.teacherOnly ? null : s.category, level: p.teacherOnly ? null : s.level }));
         }}
       >
         <fieldset class="span2">
@@ -297,10 +300,22 @@ function Setup(p: { teacher: boolean; teacherOnly: boolean; onBack: () => void; 
               </Opt>
             ))}
           </div>
-          <div class="help">2권이면 첫 권을 끝까지 돌린 뒤 둘째 권을 돌려요</div>
+          <div class="help">2권으로 하면 한 권이 끝난 뒤 다음 권을 돌려요</div>
         </fieldset>
         {!p.teacherOnly && (
-          <fieldset>
+          <fieldset class="category">
+            <legend>묶음</legend>
+            <div class="opts" role="group" aria-label="묶음">
+              {CATEGORIES.map((c) => (
+                <Opt key={c} on={s.category === c} onClick={() => set({ category: c })}>
+                  {c}
+                </Opt>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        {!p.teacherOnly && (
+          <fieldset class="level">
             <legend>수준</legend>
             <div class="opts" role="group" aria-label="수준">
               {LEVELS.map((l) => (
@@ -312,13 +327,13 @@ function Setup(p: { teacher: boolean; teacherOnly: boolean; onBack: () => void; 
           </fieldset>
         )}
         <fieldset>
-          <legend>첫 쪽은 무엇으로 시작할까요</legend>
+          <legend>첫 쪽에 무엇을 보여 줄까요</legend>
           <div class="opts" role="group" aria-label="시작 방식">
             <Opt on={s.mode === 'A'} onClick={() => set({ mode: 'A' })}>
-              속담 원문
+              글자 보고 그리기
             </Opt>
             <Opt on={s.mode === 'B'} onClick={() => set({ mode: 'B' })}>
-              뜻
+              뜻 보고 그리기
             </Opt>
           </div>
         </fieldset>
@@ -331,7 +346,7 @@ function Setup(p: { teacher: boolean; teacherOnly: boolean; onBack: () => void; 
               </Opt>
             ))}
           </div>
-          <div class="help">시간이 끝나면 그린 데까지 저절로 넘겨요 · 답 쓰기는 시간 제한이 없어요</div>
+          <div class="help">시간이 다 되면 그린 데까지 넘어가요 · 답 쓰기는 시간 제한이 없어요</div>
         </fieldset>
         <div class="form-foot">
           <button type="button" class="btn secondary press" onClick={p.onBack}>

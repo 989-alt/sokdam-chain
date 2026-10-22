@@ -65,7 +65,7 @@ export function HomeScreen({ teacherCount, toast, canResume, onResume }: Props) 
       <div class="modes">
         <section class="tile mode" aria-labelledby="mode-online">
           <h2 id="mode-online">여럿이 각자 기기로</h2>
-          <p>한 사람이 방을 만들고, 친구들은 방 코드로 들어와요. 4~6명.</p>
+          <p>한 명이 방을 만들고 친구들은 방 코드로 들어와요 (4~6명)</p>
           <div class="acts">
             <a class="btn primary press" href={hrefOf('create')}>
               <Icon name="play" size="lg" />방 만들기
@@ -77,7 +77,7 @@ export function HomeScreen({ teacherCount, toast, canResume, onResume }: Props) 
         </section>
         <section class="tile mode" aria-labelledby="mode-pass">
           <h2 id="mode-pass">기기 한 대 돌려쓰기</h2>
-          <p>기기 하나를 차례로 넘기며 해요. 인터넷이 없어도 돼요. 3~6명.</p>
+          <p>기기 하나로 돌아가며 해요. 인터넷 없이도 할 수 있어요 (3~6명)</p>
           <div class="acts">
             <a class="btn secondary press" href={hrefOf('pass')}>
               <Icon name="book-open" />돌려쓰기 시작
@@ -86,7 +86,7 @@ export function HomeScreen({ teacherCount, toast, canResume, onResume }: Props) 
         </section>
       </div>
       <a class="linkbtn" href={hrefOf('teacher')}>
-        선생님용 · 문제 목록 만들기
+        선생님 목록 만들기
       </a>
     </section>
   );

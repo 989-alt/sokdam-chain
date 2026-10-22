@@ -1,21 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ANSWER_MAX, drawPrompt, FALLBACK_NOTE, guessAction } from './prompt';
+import { ANSWER_MAX, askText, drawPrompt, FALLBACK_NOTE, guessAction } from './prompt';
 import { playSfx, sfxUrl } from './sfx';
 import { timerView } from './timer';
 
 describe('drawPrompt', () => {
-  it('A 0단계: 속담 원문, 힌트 없음', () => {
-    expect(drawPrompt({ kind: 'text', text: '원숭이도 나무에서 떨어진다' }, true)).toMatchObject({ label: '이 말을 그림으로 그려요', text: '원숭이도 나무에서 떨어진다', hint: null, imgId: null, long: true });
+  it('A 0단계: 제시어 원문, 힌트 없음', () => {
+    expect(drawPrompt({ kind: 'text', text: '원숭이도 나무에서 떨어진다' }, true, '속담')).toMatchObject({ label: '이 말을 그림으로 그려 보세요', text: '원숭이도 나무에서 떨어진다', hint: null, imgId: null, long: true });
   });
   it('B 0단계: 뜻만(원문 필드 없음)', () => {
-    const v = drawPrompt({ kind: 'meaning', text: '아무리 잘하는 사람도 실수한다.' }, true);
-    expect(v.label).toBe('이 뜻을 그림으로 그려요');
+    const v = drawPrompt({ kind: 'meaning', text: '아무리 잘하는 사람도 실수한다.' }, true, '속담');
+    expect(v.label).toBe('이 뜻을 그림으로 그려 보세요');
     expect(v.text).toBe('아무리 잘하는 사람도 실수한다.');
   });
   it('앞 답 / 대체 안내 / 앞 그림', () => {
-    expect(drawPrompt({ kind: 'text', text: '바나나' }, false)).toMatchObject({ label: '앞사람 답을 보고 그려요', hint: '원래 속담은 결과 보기에서 나와요', long: false });
-    expect(drawPrompt({ kind: 'text', text: '바나나', fallbackNote: true }, false).hint).toBe(FALLBACK_NOTE);
-    expect(drawPrompt({ kind: 'image', imgId: 'r1-0-0', fallbackNote: true }, false)).toMatchObject({ label: '앞 그림을 보고 그려요', text: null, imgId: 'r1-0-0', hint: '앞사람 것이 없어서 그 앞 내용을 보여줘요' });
+    expect(drawPrompt({ kind: 'text', text: '바나나' }, false, '관용표현')).toMatchObject({ label: '앞사람 답을 그림으로 그려 보세요', hint: '원래 관용표현은 결과 볼 때 나와요', long: false });
+    expect(drawPrompt({ kind: 'text', text: '바나나', fallbackNote: true }, false, '속담').hint).toBe(FALLBACK_NOTE);
+    expect(drawPrompt({ kind: 'image', imgId: 'r1-0-0', fallbackNote: true }, false, '속담')).toMatchObject({ label: '앞사람 그림을 보고 이어 그려 보세요', text: null, imgId: 'r1-0-0', hint: '앞사람 것이 없어서 그 앞 내용을 보여줘요' });
+  });
+});
+
+describe('묶음 문구', () => {
+  it('힌트 조사표 4개 + 교사 목록만은 제시어', () => {
+    const hint = (c: Parameters<typeof askText>[0] | null) => drawPrompt({ kind: 'text', text: '가' }, false, c).hint;
+    const topics = ['속담은', '관용표현은', '사자성어는', '상식용어는', '제시어는'];
+    expect(['속담', '관용표현', '사자성어', '상식용어', null].map((c) => hint(c as Parameters<typeof askText>[0] | null))).toEqual(topics.map((t) => `원래 ${t} 결과 볼 때 나와요`));
+  });
+  it('답 쓰기 안내 — 을/를, 상식용어는 낱말', () => {
+    expect(askText('속담')).toBe('이 그림이 나타내는 속담을 써 보세요');
+    expect(askText('관용표현')).toBe('이 그림이 나타내는 관용표현을 써 보세요');
+    expect(askText('사자성어')).toBe('이 그림이 나타내는 사자성어를 써 보세요');
+    expect(askText('상식용어')).toBe('이 그림이 나타내는 낱말을 써 보세요');
   });
 });
 

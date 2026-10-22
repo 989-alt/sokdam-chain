@@ -27,15 +27,15 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
   }
 
   return (
-    <section class="screen screen-teacher" aria-label="문제 목록 만들기">
+    <section class="screen screen-teacher" aria-label="선생님 목록 만들기">
       <header class="topbar">
-        <div class="title display">문제 목록 만들기</div>
+        <div class="title display">선생님 목록 만들기</div>
       </header>
       <form class="form" onSubmit={(e) => e.preventDefault()}>
         <fieldset class="span2">
-          <legend>속담 붙여넣기</legend>
+          <legend>제시어 붙여넣기</legend>
           <div class="field">
-            <label for="teacher-lines" class="sr">속담 목록</label>
+            <label for="teacher-lines" class="sr">제시어 목록</label>
             <textarea
               id="teacher-lines"
               class="teacher-lines"
@@ -50,8 +50,8 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
               }}
             />
             <div class="help" id="teacher-lines-help">
-              <span>한 줄에 속담 | 뜻 | 예문 · 예문은 비워도 돼요</span>
-              <span>속담 30자 · 뜻 60자 · 예문 80자까지</span>
+              <span>한 줄에 하나씩 '제시어 | 뜻 | 예문' 순으로 적어요 (예문은 비워도 돼요)</span>
+              <span>제시어 30자 · 뜻 60자 · 예문 80자까지</span>
             </div>
           </div>
         </fieldset>
@@ -62,7 +62,7 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
             {(
               [
                 ['add', '기본 목록에 더하기'],
-                ['only', '이 목록만'],
+                ['only', '이 목록만 쓰기'],
               ] as const
             ).map(([v, label]) => (
               <label key={v} class={mode === v ? 'opt press is-checked' : 'opt press'}>
@@ -81,11 +81,11 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
               </label>
             ))}
           </div>
-          <div class="help">"이 목록만"이면 방 만들기에서 수준을 고르지 않아요</div>
+          <div class="help">'이 목록만 쓰기'를 고르면 방을 만들 때 묶음·수준을 따로 고르지 않아요</div>
         </fieldset>
 
         <fieldset>
-          <legend>확인 결과</legend>
+          <legend>입력 확인</legend>
           <p class="teacher-summary" role="status" aria-live="polite">
             통과 {items.length}개{errors.length > 0 && ` · 고칠 줄 ${errors.length}개`}
           </p>
@@ -107,7 +107,7 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
               </tbody>
             </table>
           )}
-          {errors.length > 0 && <div class="help">고칠 줄은 링크에 들어가지 않아요</div>}
+          {errors.length > 0 && <div class="help">고칠 줄은 빼고 링크를 만들어요</div>}
           {enc && !enc.ok && (
             <p class="teacher-alert" role="alert">
               {enc.maxItems}개까지만 담을 수 있어요. 줄을 지우거나 뜻·예문을 짧게 줄여 주세요.
@@ -127,13 +127,13 @@ export function TeacherListScreen({ onBack }: TeacherListScreenProps) {
           <legend>공유 링크</legend>
           <div class="field">
             <label for="teacher-link" class="sr">공유 링크</label>
-            <textarea id="teacher-link" ref={linkRef} class="teacher-link" rows={3} readOnly value={link} placeholder="속담을 넣으면 링크가 생겨요" aria-describedby="teacher-link-help" />
+            <textarea id="teacher-link" ref={linkRef} class="teacher-link" rows={3} readOnly value={link} placeholder="제시어를 적으면 링크가 생겨요" aria-describedby="teacher-link-help" />
             <div class="help" id="teacher-link-help">
-              <span>복사한 링크를 QR 도구나 클래스룸에 붙여 넣으세요</span>
+              <span>복사한 링크로 QR 코드를 만들거나 클래스룸에 붙여 넣어 주세요</span>
             </div>
           </div>
           <p class="teacher-copy" role="status" aria-live="polite">
-            {copy === 'ok' ? '복사했어요' : copy === 'fail' ? '길게 눌러 복사하세요' : ''}
+            {copy === 'ok' ? '복사했어요' : copy === 'fail' ? '길게 눌러 복사해 주세요' : ''}
           </p>
         </fieldset>
 

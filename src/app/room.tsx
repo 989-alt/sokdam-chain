@@ -37,16 +37,16 @@ export const startFail = (reason: string, teacherOnly: boolean): string =>
     ? '4명부터 시작할 수 있어요'
     : reason === 'not-enough-words'
       ? teacherOnly
-        ? '선생님 목록의 제시어가 모자라 시작할 수 없어요. 목록을 늘려 주세요'
-        : '제시어가 모자라 시작할 수 없어요. 수준을 바꾸거나 선생님 목록을 확인해 주세요'
+        ? '선생님 목록에 제시어가 모자라요. 제시어를 더 넣어 주세요'
+        : '제시어가 모자라요. 묶음·수준을 바꾸거나 선생님 목록을 확인해 주세요'
       : '지금은 시작할 수 없어요';
 
 function Connecting() {
   return (
-    <section class="screen" aria-label="연결하는 중">
+    <section class="screen" aria-label="연결 중">
       <div class="tile end" role="status" aria-busy="true">
         <span class="spin big" aria-hidden="true"></span>
-        <p class="h">방에 연결하는 중이에요</p>
+        <p class="h">방에 들어가고 있어요</p>
       </div>
     </section>
   );

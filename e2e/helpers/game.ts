@@ -4,10 +4,12 @@ import { type Browser, type Locator, type Page, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs';
 
 export type Word = { id: string; text: string; meaning: string; example: string; level?: string; type?: string };
-export const WORDS: Word[] = JSON.parse(readFileSync(new URL('../../src/data/words.json', import.meta.url), 'utf8'));
+const readWords = (f: string): Word[] => JSON.parse(readFileSync(new URL(`../../src/data/words/${f}.json`, import.meta.url), 'utf8'));
+/** 본 목록 400개 — 로더 src/data/words.ts 와 같은 4 파일 합치기. */
+export const WORDS: Word[] = ['proverb', 'idiom', 'four-char', 'common-term'].flatMap(readWords);
 // 화면 글로 제시어를 찾으므로(wordByText·wordByMeaning) text·meaning 이 겹치면 판정이 틀린다 — 시작할 때 막는다.
 for (const k of ['text', 'meaning'] as const)
-  if (new Set(WORDS.map((w) => w[k])).size !== WORDS.length) throw new Error(`words.json ${k} 중복 — e2e 제시어 판정 불가`);
+  if (new Set(WORDS.map((w) => w[k])).size !== WORDS.length) throw new Error(`본 목록 ${k} 중복 — e2e 제시어 판정 불가`);
 // 이름에 '그림'·'답'·'책' 같은 화면 문구를 넣지 않는다(장 머리 문구로 장 종류를 가린다).
 export const NAMES = ['서연', '민재', '지우', '하준', '도윤', '수아', '예준'];
 
@@ -51,10 +53,10 @@ export async function createRoom(page: Page, name: string, o: RoomOpts = {}): Pr
     await page.getByRole('link', { name: '방 만들기' }).click();
   } else await page.goto('/#/create');
   const opt = (n: string) => page.getByRole('button', { name: n, exact: true }).click();
-  if (o.mode === 'B') await opt('뜻');
+  if (o.mode === 'B') await opt('뜻 보고 그리기');
   if (o.drawSeconds) await opt(`${o.drawSeconds}초`);
   if (o.review === 'manual') await opt('방장이 넘김');
-  else if (o.review) await opt(`${o.review}초 뒤 자동 넘김`);
+  else if (o.review) await opt(`${o.review}초마다 자동 넘김`);
   const off = page.getByRole('button', { name: '끄기', exact: true });
   if (await off.count()) await off.click(); // 효과음 끔(효과음 파일이 없으면 소리 설정 자체가 없다)
   await page.locator('#host-name').fill(name);
@@ -192,7 +194,7 @@ async function readPage(p: Page): Promise<ReviewRec> {
 
 /**
  * 수동 결과 보기: 방장이 '다음 쪽' 을 끝까지 누른다. 매 장마다 학생 화면 장 번호가 방장과 같고 학생에겐 넘김 버튼이 없음을 확인.
- * 마지막 장에서 '투표하러 가요' 를 누른다.
+ * 마지막 장에서 '스티커 투표하기' 를 누른다.
  */
 export async function walkReviewManual(players: Page[], total: number): Promise<ReviewRec[]> {
   const [host, ...students] = players as [Page, ...Page[]];
@@ -207,7 +209,7 @@ export async function walkReviewManual(players: Page[], total: number): Promise<
       await expect.poll(() => reviewSig(s)).toBe(rec.sig);
       await expect(s.locator('.review-foot button')).toHaveCount(0);
     }
-    await host.getByRole('button', { name: i === total - 1 ? '투표하러 가요' : '다음 쪽' }).click();
+    await host.getByRole('button', { name: i === total - 1 ? '스티커 투표하기' : '다음 쪽' }).click();
   }
   return recs;
 }

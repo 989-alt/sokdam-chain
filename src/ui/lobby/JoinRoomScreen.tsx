@@ -55,7 +55,7 @@ export function JoinRoomScreen({ onJoin, onBack }: Props) {
               }}
             />
             <div class="help" id="room-code-help">
-              <span>방장 화면의 숫자 6자리</span>
+              <span>방장 화면에 적힌 숫자 6자리</span>
               <span>
                 {code.length} / {CODE_LEN}
               </span>

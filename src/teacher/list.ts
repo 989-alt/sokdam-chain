@@ -1,7 +1,7 @@
 // 교사 목록 링크 (PRD §7.6, 설계문서 §5.2). 서버 없이 URL 해시 '#l=' 에 압축해 담는다.
 // 압축은 fflate — 구형 iOS Safari 에 브라우저 내장 압축 API 가 없다. fflate 의 deflateSync 가 raw DEFLATE(=deflateRaw) 다.
 import { deflateSync, inflateSync, strFromU8, strToU8 } from 'fflate';
-import type { Level, Word } from '../data/schema';
+import { TEACHER_TYPE, type Level, type Word } from '../data/schema';
 
 export type ListMode = 'add' | 'only';
 /** 링크 안의 항목. e 는 비어 있을 수 있다(카드에 예문 줄 생략). */
@@ -22,7 +22,7 @@ export const MAX = { t: 30, m: 60, e: 80 } as const; // words 스키마·카드 
 export const ITEMS_MAX = 300; // 링크 하나에 담는 항목 상한(복원 쪽 방어와 같다)
 const INFLATE_MAX = 256 * 1024; // 300개 × 최대 항목(UTF-8 ≈ 540B) ≈ 160KB 보다 넉넉히
 
-/** 한 줄 '속담 | 뜻 | 예문'. 첫 두 '|' 로만 나눈다. 줄 번호는 빈 줄 포함 1부터. 같은 속담은 먼저 것만 남긴다. */
+/** 한 줄 '제시어 | 뜻 | 예문'. 첫 두 '|' 로만 나눈다. 줄 번호는 빈 줄 포함 1부터. 같은 제시어는 먼저 것만 남긴다. */
 export function parseLines(text: string): { items: ListItem[]; errors: LineError[] } {
   const items: ListItem[] = [];
   const errors: LineError[] = [];
@@ -31,7 +31,7 @@ export function parseLines(text: string): { items: ListItem[]; errors: LineError
     const line = i + 1;
     if (!raw.trim()) return;
     const parts = raw.split('|');
-    if (parts.length < 2) return errors.push({ line, reason: "'속담 | 뜻' 처럼 | 로 나눠 주세요" });
+    if (parts.length < 2) return errors.push({ line, reason: "'제시어 | 뜻'처럼 |로 나눠 주세요" });
     const t = parts[0]!.trim();
     const m = parts[1]!.trim();
     const e = parts.slice(2).join('|').trim();
@@ -45,17 +45,17 @@ export function parseLines(text: string): { items: ListItem[]; errors: LineError
 }
 
 function checkItem(x: ListItem): string | null {
-  if (!x.t) return '속담이 비어 있어요';
+  if (!x.t) return '제시어가 비어 있어요';
   if (!x.m) return '뜻이 비어 있어요';
-  if (x.t.length > MAX.t) return `속담은 ${MAX.t}자까지예요 (${x.t.length}자)`;
-  if (x.m.length > MAX.m) return `뜻은 ${MAX.m}자까지예요 (${x.m.length}자)`;
-  if (x.e.length > MAX.e) return `예문은 ${MAX.e}자까지예요 (${x.e.length}자)`;
+  if (x.t.length > MAX.t) return `제시어는 ${MAX.t}자 이내로 써 주세요 (${x.t.length}자)`;
+  if (x.m.length > MAX.m) return `뜻은 ${MAX.m}자 이내로 써 주세요 (${x.m.length}자)`;
+  if (x.e.length > MAX.e) return `예문은 ${MAX.e}자 이내로 써 주세요 (${x.e.length}자)`;
   return null;
 }
 
-/** 엔진·카드가 쓰는 Word 로. id 't-<순번>', type '관용표현' 고정. level 은 교사 목록에 없어 부르는 쪽이 정한다. */
+/** 엔진·카드가 쓰는 Word 로. id 't-<순번>', type '선생님 목록'(카드 종류 라벨 — 묶음 아님). level 은 교사 목록에 없어 부르는 쪽이 정한다. */
 export function toWords(items: ListItem[], level: Level): Word[] {
-  return items.map((x, i) => ({ id: `t-${i + 1}`, text: x.t, meaning: x.m, example: x.e, level, type: '관용표현' }));
+  return items.map((x, i) => ({ id: `t-${i + 1}`, text: x.t, meaning: x.m, example: x.e, level, type: TEACHER_TYPE }));
 }
 
 function toHash(mode: ListMode, items: ListItem[]): string {
@@ -85,7 +85,7 @@ export function encodeList(mode: ListMode, items: ListItem[]): EncodeResult {
   if (items.length > ITEMS_MAX) return { ok: false, maxItems: fitCount(mode, items.slice(0, ITEMS_MAX), HASH_MAX) };
   const hash = toHash(mode, items);
   if (hash.length > HASH_MAX) return { ok: false, maxItems: fitCount(mode, items, HASH_MAX) };
-  if (hash.length > HASH_QR) return { ok: true, hash, warning: `QR 로 나눠 주려면 ${fitCount(mode, items, HASH_QR)}개 이하가 좋아요` };
+  if (hash.length > HASH_QR) return { ok: true, hash, warning: `QR로 나눠 주려면 ${fitCount(mode, items, HASH_QR)}개 이하가 좋아요` };
   return { ok: true, hash };
 }
 
@@ -138,7 +138,7 @@ export function decodeList(hash: string): DecodeResult {
 
 /** 복원 실패 시 T05 가 보여 줄 문구 하나. 'missing'(링크에 목록 없음)은 실패가 아니라 보여 주지 않는다. */
 export function decodeFailMessage(_reason: DecodeFail): string {
-  return '선생님 링크가 잘못됐거나 깨졌어요. 기본 목록으로 할게요.';
+  return '선생님 링크가 잘못되어 기본 목록으로 시작해요';
 }
 
 /** 공유 링크 = origin + pathname(base 포함) + '#l=…'. 쿼리·기존 해시는 버린다. */

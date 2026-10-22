@@ -8,7 +8,7 @@ import { nameToSend } from '../shared/input';
 import { createFailMessage } from '../shared/messages';
 import { HAS_SFX } from '../shared/sound';
 import { Topbar } from '../shared/Topbar';
-import { DEFAULT_SETTINGS, DRAW_SECONDS, LEVELS, REVIEW_SECONDS } from './labels';
+import { CATEGORIES, DEFAULT_SETTINGS, DRAW_SECONDS, LEVELS, REVIEW_SECONDS } from './labels';
 import { NameField } from './NameField';
 
 type Props = {
@@ -41,7 +41,7 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
     setBusy(true);
     setFailed(false);
     const listSource = !teacher ? 'default' : only ? 'teacher-only' : 'teacher-add';
-    const ok = await onCreate(send, { ...s, level: only ? null : s.level, listSource });
+    const ok = await onCreate(send, { ...s, category: only ? null : s.category, level: only ? null : s.level, listSource });
     setBusy(false);
     setFailed(!ok);
   };
@@ -77,6 +77,18 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
           <NameField id="host-name" value={name} onChange={setName} />
         </fieldset>
         {!only && (
+          <fieldset class="category">
+            <legend>묶음</legend>
+            <div class="opts" role="group" aria-label="묶음">
+              {CATEGORIES.map((c) => (
+                <Opt key={c} on={s.category === c} onClick={() => set({ category: c })}>
+                  {c}
+                </Opt>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        {!only && (
           <fieldset class="level">
             <legend>수준</legend>
             <div class="opts" role="group" aria-label="수준">
@@ -86,20 +98,20 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
                 </Opt>
               ))}
             </div>
-            {teacher && <div class="help">선생님 목록이 모든 수준에 더해져요</div>}
+            {teacher && <div class="help">어느 묶음·수준을 골라도 선생님 목록이 함께 나와요</div>}
           </fieldset>
         )}
         <fieldset>
-          <legend>첫 쪽은 무엇으로 시작할까요</legend>
+          <legend>첫 쪽에 무엇을 보여 줄까요</legend>
           <div class="opts" role="group" aria-label="시작 방식">
             <Opt on={s.mode === 'A'} onClick={() => set({ mode: 'A' })}>
-              속담 원문
+              글자 보고 그리기
             </Opt>
             <Opt on={s.mode === 'B'} onClick={() => set({ mode: 'B' })}>
-              뜻
+              뜻 보고 그리기
             </Opt>
           </div>
-          {only && <div class="help">선생님 목록만 써서 수준 고르기는 숨겼어요</div>}
+          {only && <div class="help">선생님 목록만 쓸 때는 묶음·수준을 고르지 않아요</div>}
         </fieldset>
         <fieldset>
           <legend>그리기 시간</legend>
@@ -110,14 +122,14 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
               </Opt>
             ))}
           </div>
-          <div class="help">시간이 끝나면 그린 데까지 저절로 보내요</div>
+          <div class="help">시간이 다 되면 그린 데까지 바로 보내요</div>
         </fieldset>
         <fieldset>
           <legend>결과 보기</legend>
           <div class="opts" role="group" aria-label="결과 보기 방식">
             {REVIEW_SECONDS.map((n) => (
               <Opt key={n} on={s.review === 'timer' && s.reviewSeconds === n} onClick={() => set({ review: 'timer', reviewSeconds: n })}>
-                {n}초 뒤 자동 넘김
+                {n}초마다 자동 넘김
               </Opt>
             ))}
             <Opt on={s.review === 'manual'} onClick={() => set({ review: 'manual' })}>
@@ -136,7 +148,7 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
                 끄기
               </Opt>
             </div>
-            <div class="help">방 전체 설정이에요 · 내 기기만 끄려면 위의 소리 단추를 눌러요</div>
+            <div class="help">방 전체 설정이에요 · 내 기기만 끄려면 위 소리 버튼을 눌러 주세요</div>
           </fieldset>
         )}
         <div class="form-foot">
@@ -146,7 +158,7 @@ export function CreateRoomScreen({ teacher, onCreate, onBack, onPassAround }: Pr
           </button>
           <button type="submit" class="btn primary press grow" disabled={!send || busy} aria-busy={busy}>
             {busy ? <span class="spin" aria-hidden="true" /> : <Icon name="play" size="lg" />}
-            {busy ? '방을 만드는 중' : '방 만들기'}
+            {busy ? '방 만드는 중' : '방 만들기'}
           </button>
         </div>
       </form>

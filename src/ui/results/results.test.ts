@@ -41,20 +41,21 @@ describe('pagePos', () => {
 
 describe('pageLabel', () => {
   it('이름은 (2)·● 그대로', () => {
-    expect(pageLabel(pages[1]!, 2, nameOf, 'A')).toBe('2쪽 · 민수 그림');
-    expect(pageLabel(pages[5]!, 2, nameOf, 'A')).toBe('2쪽 · 민수 (2) 그림');
-    expect(pageLabel(pages[2]!, 3, (s) => (s === 1 ? '●●민수' : 'x'), 'A')).toBe('3쪽 · ●●민수 답');
-    expect(pageLabel(pages[0]!, 1, nameOf, 'B')).toBe('1쪽 · 처음 뜻');
-    expect(pageLabel(pages[0]!, 1, nameOf, 'A')).toBe('1쪽 · 처음 제시어');
-    expect(pageLabel(pages[3]!, 4, nameOf, 'A')).toBe('4쪽 · 뜻과 예문');
+    expect(pageLabel(pages[1]!, 2, nameOf, 'A', '속담')).toBe('2쪽 · 민수 그림');
+    expect(pageLabel(pages[5]!, 2, nameOf, 'A', '속담')).toBe('2쪽 · 민수 (2) 그림');
+    expect(pageLabel(pages[2]!, 3, (s) => (s === 1 ? '●●민수' : 'x'), 'A', '속담')).toBe('3쪽 · ●●민수 답');
+    expect(pageLabel(pages[0]!, 1, nameOf, 'B', '속담')).toBe('1쪽 · 처음 뜻');
+    expect(pageLabel(pages[0]!, 1, nameOf, 'A', '사자성어')).toBe('1쪽 · 처음 사자성어');
+    expect(pageLabel(pages[0]!, 1, nameOf, 'A', null)).toBe('1쪽 · 처음 제시어');
+    expect(pageLabel(pages[3]!, 4, nameOf, 'A', '속담')).toBe('4쪽 · 뜻과 예문');
   });
 });
 
 describe('결측·빈 답·그림', () => {
-  it("답 없음 / (빈 답) / 원문", () => {
+  it("답 없음 / (비어 있음) / 원문", () => {
     const p2 = pages[2] as EP;
     const p6 = pages[6] as EP;
-    expect(guessText(p2.entry, p2.empty)).toBe('(빈 답)');
+    expect(guessText(p2.entry, p2.empty)).toBe('(비어 있음)');
     expect(guessText(p6.entry, p6.empty)).toBe('답 없음');
     const ok = g(0, 1, 1, '바나나') as EP;
     expect(guessText(ok.entry, ok.empty)).toBe('바나나');

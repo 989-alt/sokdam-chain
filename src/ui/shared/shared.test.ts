@@ -30,7 +30,7 @@ describe('join fail messages', () => {
     expect(joinFailMessage('full')).toBe('방이 꽉 찼어요');
     expect(joinFailMessage('started')).toBe('이미 시작한 방이에요');
     expect(joinFailMessage('version')).toBe('앱을 새로고침해 주세요');
-    expect(joinFailMessage('no-room')).toBe('방을 찾을 수 없어요. 코드를 다시 확인해요');
+    expect(joinFailMessage('no-room')).toBe('방을 찾을 수 없어요. 코드를 다시 확인해 주세요');
     expect(joinFailMessage('timeout')).toBe(joinFailMessage('no-room'));
     expect(joinFailMessage('server-error')).toContain('연결할 수 없어요');
   });
