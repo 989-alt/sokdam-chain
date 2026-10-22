@@ -46,6 +46,10 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 /* 상단 바 + 칩 */
 .topbar { display: flex; align-items: center; gap: var(--spacing-3); height: var(--size-touch-min); }
 .topbar .title { font-size: var(--font-size-heading); color: var(--color-primary); text-shadow: 2px 2px 0 var(--color-foreground); white-space: nowrap; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* 게임 중: 칩이 자리를 차지하므로 제목만 글자 크기 토큰을 (책 칩이 있으면 칩 글자도) 한 단계 낮춘다(이름 12자 최악에서도 안 잘림) */
+.topbar:has(.chip) .title { font-size: var(--font-size-body-lg); }
+.topbar:has(.book-tag) .chip { font-size: var(--font-size-body); padding: 0 var(--spacing-3); }
+.topbar:has(.book-tag) .title { font-size: var(--font-size-caption); }
 .chip { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-min); padding: 0 var(--spacing-4); border-radius: var(--radius-full); font-size: var(--font-size-body-lg); font-weight: var(--font-weight-bold); border: var(--border-width-default) solid var(--color-border); box-shadow: var(--shadow-pressed); white-space: nowrap; }
 .chip.room { background: var(--color-roomcode-surface); color: var(--color-roomcode-foreground); font-family: var(--font-family-display); font-weight: var(--font-weight-regular); letter-spacing: 0.12em; }
 .chip.room span { font-family: var(--font-family-body); font-size: var(--font-size-caption); letter-spacing: 0; }

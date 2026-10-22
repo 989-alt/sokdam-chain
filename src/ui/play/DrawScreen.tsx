@@ -109,7 +109,7 @@ export function DrawScreen(p: DrawScreenProps) {
 
   return (
     <section class="screen screen-draw play-draw" aria-label="그림 그릴 차례">
-      <Topbar title="속담 이어그리기">{p.chips}</Topbar>
+      <Topbar title="이어라! 언어 표현 한 바퀴">{p.chips}</Topbar>
       {p.submitted ? (
         p.waiting
       ) : (

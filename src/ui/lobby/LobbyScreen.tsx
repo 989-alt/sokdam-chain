@@ -39,7 +39,7 @@ export function LobbyScreen({ code, players, mySlot, settings, isHost, canStart,
 
   return (
     <section class="screen screen-lobby" aria-label="대기실">
-      <Topbar title="속담 이어그리기">
+      <Topbar title="이어라! 언어 표현 한 바퀴">
         <span class="chip soft" aria-live="polite">
           <Icon name="users" size="sm" />
           {players.length} / {MAX_PLAYERS}명

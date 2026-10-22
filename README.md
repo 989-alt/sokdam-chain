@@ -1,4 +1,4 @@
-# 속담 이어그리기 (sokdam-chain)
+# 이어라! 언어 표현 한 바퀴 (sokdam-chain)
 
 Telestrations-style classroom drawing game. Vite + TypeScript + Preact, PeerJS WebRTC, no backend.
 

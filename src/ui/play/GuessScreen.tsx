@@ -48,7 +48,7 @@ export function GuessScreen(p: GuessScreenProps) {
 
   return (
     <section class="screen screen-guess play-guess" aria-label="답 쓸 차례">
-      <Topbar title="속담 이어그리기">{p.chips}</Topbar>
+      <Topbar title="이어라! 언어 표현 한 바퀴">{p.chips}</Topbar>
       <div class="guess-book handoff-in">
         <article class="page" aria-label="앞사람 것">
           <div class="coil" aria-hidden="true" />

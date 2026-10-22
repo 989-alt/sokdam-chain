@@ -48,7 +48,7 @@ export function OnlinePlay() {
     if (!cell || !settings)
       return (
         <section class="screen" aria-label="기다리기">
-          <Topbar title="속담 이어그리기">{meChip}</Topbar>
+          <Topbar title="이어라! 언어 표현 한 바퀴">{meChip}</Topbar>
           <WaitingPanel title="다음 차례를 준비해요" players={waitList} />
         </section>
       );
@@ -156,7 +156,7 @@ export function OnlinePlay() {
   // review 인데 settings 가 아직 없음 등 — 잠깐 비는 순간
   return (
     <section class="screen" aria-label="기다리기">
-      <Topbar title="속담 이어그리기">{meChip}</Topbar>
+      <Topbar title="이어라! 언어 표현 한 바퀴">{meChip}</Topbar>
       <WaitingPanel title="잠깐만 기다려 주세요" players={waitList} />
     </section>
   );

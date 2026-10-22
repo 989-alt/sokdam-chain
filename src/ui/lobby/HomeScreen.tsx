@@ -20,7 +20,7 @@ export function HomeScreen({ teacherCount, toast, canResume, onResume }: Props) 
   const [resumeError, setResumeError] = useState<string | null>(null);
   return (
     <section class="screen home" aria-label="처음 화면">
-      <Topbar title="속담 이어그리기">
+      <Topbar title="이어라! 언어 표현 한 바퀴">
         {teacherCount !== null && (
           <span class="chip soft teacher-badge">
             <Icon name="book-open" size="sm" />
