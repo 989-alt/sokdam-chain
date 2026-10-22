@@ -50,6 +50,11 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .topbar:has(.chip) .title { font-size: var(--font-size-body-lg); }
 .topbar:has(.book-tag) .chip { font-size: var(--font-size-body); padding: 0 var(--spacing-3); }
 .topbar:has(.book-tag) .title { font-size: var(--font-size-caption); }
+/* 세로 화면: 참가자 이름 칩이 있으면(대기실·게임·투표) 제목은 윗줄에 혼자 — 이름 12자 + ' (2)' 칩과 한 줄엔 안 들어가 말줄임됐다(QA r4). 가로는 세로 여유가 없어 한 줄 */
+@media (orientation: portrait) {
+  .topbar:has(.chip.player) { flex-wrap: wrap; height: auto; row-gap: var(--spacing-2); }
+  .topbar:has(.chip.player) .title { flex: 1 0 100%; font-size: var(--font-size-body-lg); }
+}
 .chip { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-min); padding: 0 var(--spacing-4); border-radius: var(--radius-full); font-size: var(--font-size-body-lg); font-weight: var(--font-weight-bold); border: var(--border-width-default) solid var(--color-border); box-shadow: var(--shadow-pressed); white-space: nowrap; }
 .chip.room { background: var(--color-roomcode-surface); color: var(--color-roomcode-foreground); font-family: var(--font-family-display); font-weight: var(--font-weight-regular); letter-spacing: 0.12em; }
 .chip.room span { font-family: var(--font-family-body); font-size: var(--font-size-caption); letter-spacing: 0; }
@@ -156,6 +161,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; -webkit-tap-h
 .page.lined > .coil { margin-bottom: 23px; }
 .page.lined .who, .page.lined .ask, .page.lined .guess, .page.lined .field label, .page.lined .field .help { line-height: 47px; }
 .page.lined .guess { flex: none; display: block; padding: 0; min-height: 235px; }
+.page.lined .guess > * { position: relative; top: -2px; } /* 36px Jua 기준선이 줄보다 0.5px 아래(QA r4) → 2px 올려 줄 위 1.5px. 블록 위 경계는 그대로 47 배수 */
 .page.lined .field { gap: 0; }
 .page.lined .field input { margin-bottom: calc(94px - var(--size-touch-primary)); } /* 입력란 72 + 22 = 두 칸 → 아래 도움말이 줄 경계에서 */
 .page.lined .pagetabs { row-gap: 7px; padding-bottom: 7px; } /* 탭 40 + 7 = 한 칸, 두 줄로 접혀도 94 */

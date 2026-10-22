@@ -81,6 +81,7 @@ async function onGrid(page: Page, pageSel: string, sel: string) {
 }
 
 async function settle(page: Page) {
+  await page.evaluate(() => document.fonts.ready); // 글꼴 로드 전엔 대체 글꼴 기준선으로 재 버린다
   await page.evaluate(() => new Promise((r) => setTimeout(r, 150)));
   await expect.poll(() => page.evaluate(() => document.getAnimations().every((a) => a.playState !== 'running'))).toBe(true);
 }

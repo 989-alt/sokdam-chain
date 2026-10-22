@@ -128,7 +128,7 @@ export function ReviewScreen(p: ReviewScreenProps) {
               ))}
             </div>
             <div class="who">{label}</div>
-            {page.kind === 'prompt' && <div class="guess prompt-page">{page.text}</div>}
+            {page.kind === 'prompt' && <div class="guess prompt-page"><span>{page.text}</span></div>}
             {page.kind === 'guess' && (
               <div class="guess">{page.entry.status === 'done' && !page.empty ? <q>{guessText(page.entry, page.empty)}</q> : <span class="none">{guessText(page.entry, page.empty)}</span>}</div>
             )}
